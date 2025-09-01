@@ -34,3 +34,4 @@ resource "azurerm_storage_account" "sa-shs" {
     environment = "staging"
   }
 }
+

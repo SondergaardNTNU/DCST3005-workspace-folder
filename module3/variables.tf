@@ -1,21 +1,10 @@
+#variables.tf
 variable "location" {
   type        = string
   description = "Deployment location"
-  default     = "West Europe"
+  default     = "norwayeast"
 }
 
-variable "resource_group_name" {
-  type        = string
-  description = "Resource group name"
-  default     = "shs-terraform-rg1"
-
-}
-
-variable "storage_account_name" {
-  type        = string
-  description = "Storage account name"
-  default     = "shsdemostorage1"
-}
 
 variable "company" {
   type        = string
@@ -25,9 +14,36 @@ variable "company" {
 variable "project" {
   type        = string
   description = "Project name"
+  default     = "demo"
 }
 
-variable "billing_code" {
+variable "costcenter" {
   type        = string
   description = "Billing code"
+}
+
+variable "nameprefix" {
+  type        = string
+  description = "Prefix for resource names"
+}
+
+variable "suffix" {
+  type        = string
+  description = "Suffix for resource names"
+}
+
+variable "administrator_login" { #defined in terraform.tfvars
+  type        = string
+  description = "Administrator username for SQL Server"
+}
+
+variable "administrator_login_password" { #defined in terraform.tfvars
+  type        = string
+  description = "Administrator login password for SQL Server"
+  sensitive   = true
+}
+
+variable "owner" {
+  type        = string
+  description = "value"
 }
