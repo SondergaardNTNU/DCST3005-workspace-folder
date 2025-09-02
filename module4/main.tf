@@ -14,15 +14,19 @@ provider "azurerm" {
   }
 }
 
-module "ResourceGroup" {
-  source    = "./ResourceGroup"
-  base_name = "shs-demo"
-  location  = "West Europe"
+module "vnet" {
+  source    = "./VNet"
+  base_name = var.base-name
+  location  = var.location
 }
 
-module "StorageAccount" {
-  source    = "./StorageAccount"
-  base_name = "shs-demo"
-  rg_name   = module.ResourceGroup.rg_name_output
-  location  = module.ResourceGroup.location_output
+module "vm" {
+  source         = "./VM"
+  base_name      = var.base-name
+  rg_name        = module.vnet.rg_name_output
+  location       = module.vnet.location
+  vm_size        = var.vm_size
+  admin_username = var.admin_username
+  admin_password = var.admin_password
+  subnet_id      = module.vnet.subnet_id
 }
