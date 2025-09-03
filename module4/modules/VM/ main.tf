@@ -1,5 +1,5 @@
 resource "azurerm_network_interface" "nic" {
-  name                = "${var.base_name}-nic"
+  name                = var.nic_name
   location            = var.location
   resource_group_name = var.rg_name
 
@@ -11,13 +11,17 @@ resource "azurerm_network_interface" "nic" {
 }
 
 resource "azurerm_linux_virtual_machine" "linux_vm" {
-  name                = "${var.base_name}-vm"
+  name                = var.vm_name
   resource_group_name = var.rg_name
   location            = var.location
   size                = var.vm_size
 
   admin_username = var.admin_username
   admin_password = var.admin_password
+
+  disable_password_authentication = false
+
+  tags = var.tags
 
   network_interface_ids = [
     azurerm_network_interface.nic.id,
@@ -31,7 +35,8 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
+    sku       = var.vm_image_sku
     version   = "latest"
   }
+
 }
