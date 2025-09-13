@@ -1,3 +1,7 @@
+#terraform init
+#terraform plan -var-file="prod.terraform.tfvars"
+#terraform apply -var-file="prod.terraform.tfvars"
+
 terraform {
   required_providers {
     azurerm = {

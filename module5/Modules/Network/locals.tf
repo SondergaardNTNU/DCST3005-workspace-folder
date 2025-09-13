@@ -1,9 +1,9 @@
 locals {
-  rg_name     = "rg-${var.environment}-${var.name_prefix}"
+  rg_name = "rg-${var.environment}-${var.name_prefix}"
   tags = merge({
     environment = var.environment
+    module      = "Network"
     owner       = "Sondre H. Søndergaard"
-    department  = "Production"
+    billing     = "DCST3005"
   }, var.tags)
 }
-
