@@ -74,8 +74,8 @@ Kjør følgende kommandoer fra ønsket miljømappe (f.eks. `Environments/Dev`):
 
 ```sh
 terraform init
-terraform plan -var-file="dev.terraform.tfvars"
-terraform apply -var-file="dev.terraform.tfvars"
+terraform plan -var-file="dev.terraform.tfvars" -out=dev-tfplan
+terraform apply "dev-tfplan"
 ```
 
 For å destruere:

@@ -1,6 +1,6 @@
 #terraform init
-#terraform plan -var-file="test.terraform.tfvars"
-#terraform apply -var-file="test.terraform.tfvars"
+#terraform plan -var-file="test.terraform.tfvars" -out=test-tfplan
+#terraform apply "test-tfplan"
 
 terraform {
   required_providers {
@@ -25,7 +25,7 @@ resource "azurerm_resource_group" "rg" {
 
 
 module "stack" {
-  source             = "../../stacks"
+  source             = "../../Stack"
   rg_name            = azurerm_resource_group.rg.name
   location           = var.location
   environment        = var.environment
