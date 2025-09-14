@@ -3,6 +3,11 @@ README-shs.md
 # Local .terraform directories
 .terraform/
 
+# tfplan files
+test-tfplan
+prod-tfplan
+dev-tfplan
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
