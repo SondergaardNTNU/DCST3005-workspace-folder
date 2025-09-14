@@ -11,6 +11,14 @@ resource "azurerm_subnet" "subnet" {
   resource_group_name  = var.rg_name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = [var.subnet_cidr]
+
+  delegation {
+    name = "appservice"
+    service_delegation {
+      name    = "Microsoft.Web/serverFarms"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
 }
 
 resource "azurerm_network_security_group" "nsg" {

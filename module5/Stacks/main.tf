@@ -1,23 +1,24 @@
 module "app_service" {
   source = "../Modules/AppService"
 
-  rg_name                = azurerm_resource_group.rg_name
+  rg_name                = var.rg_name
   location               = var.location
   environment            = var.environment
   name_prefix            = var.name_prefix
   tags                   = var.tags
   sku_tier               = var.sku_tier
   sku_size               = var.sku_size
-  dotnet_framework_version = var.dotnet_framework_version
+  kind                   = var.kind
   scm_type               = var.scm_type
   SOME_KEY               = var.SOME_KEY
-  connection_string      = var.connection_string
+  linux_fx_version       = var.linux_fx_version
+  subnet_id              = module.network.subnet_id
 }
 
 module "network" {
   source = "../Modules/Network"
 
-  rg_name         = azurerm_resource_group.rg_name
+  rg_name         = var.rg_name
   location        = var.location
   environment     = var.environment
   name_prefix     = var.name_prefix

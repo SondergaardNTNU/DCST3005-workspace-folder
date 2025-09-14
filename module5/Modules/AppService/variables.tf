@@ -28,21 +28,26 @@ variable "tags" {
 variable "sku_tier" {
   type        = string
   description = "The tier of the App Service Plan (e.g., Free, Shared, Basic, Standard, Premium)."
-  default     = "Standard"
+  default     = "Free"
 }
 
 variable "sku_size" {
   type        = string
   description = "The size of the App Service Plan (e.g., F1, D1, B1, S1, P1v2)."
-  default     = "S1"
+  default     = "F1"
 }
 
-variable "dotnet_framework_version" {
-  type        = string
-  description = "The .NET Framework version for the App Service (e.g., v4.0, v3.5)."
-  default     = "v4.0"
-  
-}
+variable "kind" {
+    type        = string
+    description = "The kind of App Service Plan (e.g., Windows, Linux)."
+    default     = "Linux"
+    }
+
+variable "linux_fx_version" {
+    type        = string
+    description = "The Linux FX version for the App Service (e.g., DOCKER|<image>)."
+    default     = "DOCKER|mcr.microsoft.com/azure-app-service/samples/aspnetcore-helloworld:latest"
+    }
 
 variable "scm_type" {
     type        = string
@@ -56,9 +61,8 @@ variable "SOME_KEY" {
     default     = "some-value"
 }
 
-variable "connection_string" {
-    type        = string
-    description = "Example connection string."
-    default     = "DefaultEndpointsProtocol=https;AccountName=your_account_name;AccountKey=your_account_key;EndpointSuffix=core.windows.net"
-  
+
+variable "subnet_id" {
+  type        = string
+  description = "ID til subnettet som skal brukes for VNet-integrasjon med App Service."
 }
