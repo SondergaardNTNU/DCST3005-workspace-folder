@@ -1,6 +1,6 @@
 # DCST3005 Terraform App Service-plattform
 
-## Prosjektstruktur
+## Filstruktur
 
 ```
 module5/
@@ -36,19 +36,17 @@ module5/
 
 ## Oversikt
 
-Denne løsningen oppretter en plattform i Azure med et nettverkslag og et applikasjonslag, og kan kjøres i flere miljøer (dev, test, prod). Nettverkslaget etablerer ressursgruppe, VNet, subnett og nettverkssikkerhetsgruppe. Applikasjonslaget oppretter en App Service Plan og en Linux Web App.
+Denne løsningen oppretter i Azure et nettverkslag og et applikasjonslag, og kan kjøres i flere miljøer (Dev, Test, og Prod). Nettverkslaget etablerer VNet, subnett og nettverkssikkerhetsgruppe. Applikasjonslaget oppretter en App Service Plan og en Linux Web App.
 
-### Moduler
-- **Network**: Oppretter ressursgruppe, VNet, subnett og NSG. Parametriseres via variabler.
-- **AppService**: Oppretter App Service Plan og Web App. Konsumerer outputs fra Network-modulen.
+### `../Modules`
+- **`../Modules/Network`**: Oppretter VNet, subnett og NSG. Parametriseres via variabler.
+- **`../Modules/AppService`**: Oppretter en App Service Plan og Linux App Service. Tar i bruk outputs (subnet_id) fra Network-modulen for integrasjon med VNET-et.
 
-### Stack
+### `../Stack`
 - Komponerer modulene og kobler outputs fra Network til inputs i AppService.
-- Eksponerer relevante outputs for verifikasjon.
 
-### Miljømapper
-- Hver miljømappe (Dev, Test, Prod) instansierer stacken og leverer variabler via *.tfvars.
-- Ingen miljøspesifikke verdier er hardkodet i modulene.
+### `../Environments`
+- Hver miljømappe (Dev, Test, Prod) lager et instans med bruk av modulene fra `../Stacks` og tar input fra variabler via *.tfvars filene.
 
 ## Variabler
 Alle forskjeller mellom miljøer styres via inputvariabler, f.eks.:
@@ -58,7 +56,7 @@ Alle forskjeller mellom miljøer styres via inputvariabler, f.eks.:
 - `location`: Azure-region
 - `tags`: Eier, miljø, formål
 - `vnet_cidr`, `subnet_cidr`: Adresseområder
-- `sku_tier`, `sku_size`: App Service Plan
+- `sku_tier`, `sku_size`: App Service Plan, benytter free tier for lav kost.
 
 ## Outputs
 Stacken eksponerer bl.a.:
@@ -68,7 +66,7 @@ Stacken eksponerer bl.a.:
 - `network_vnet_name`: VNet-navn
 
 ## Navngivning og tagging
-Navngivning og tagging håndteres med `locals` for konsistens. Ressursnavn settes basert på miljø, prefiks og rolle. Tags inkluderer miljø, eier og formål.
+Navngivning og tagging håndteres med `locals.tf` for konsekvent navngivning og tagging. Ressursnavn settes basert på miljø (dev, prod eller test), prefiks (shs) og rolle. Tags inkluderer miljø, eier og formål.
 
 ## Kommandoer for utrulling og destruksjon
 
@@ -86,12 +84,50 @@ terraform destroy -var-file="dev.terraform.tfvars"
 ```
 
 ## Utfylling av *.tfvars
-Fyll inn alle variabler som kreves for ditt miljø i den aktuelle *.tfvars-filen. Se eksempel i `dev.terraform.tfvars`.
 
-## Forutsetninger
-- Terraform installert
-- Tilgang til Azure-konto
-- Azure CLI autentisert eller subscription_id angitt
+### Slik fyller du ut *.tfvars-filen for et miljø
+
+Alle variabler som styrer ressursene for miljøet må settes i *.tfvars-filen. Dette sikrer at du kan bruke samme stack og moduler for Dev, Test og Prod, men med ulike verdier.
+
+Eksempel på innhold i `dev.terraform.tfvars`:
+
+```hcl
+subscription_id = "<din-azure-subscription-id>"
+environment     = "dev"                # Miljønavn, f.eks. dev, test, prod
+name_prefix     = "shs-devapp"         # Prefiks for ressursnavn
+location        = "Norway East"        # Azure-region
+vnet_cidr       = "10.0.0.0/16"        # Adresseområde for VNet
+subnet_cidr     = "10.0.1.0/24"        # Adresseområde for subnett
+allow_ssh_cidr  = "0.0.0.0/0"          # CIDR for SSH-tilgang (valgfritt, brukes kun for VM)
+tags = {
+    owner      = "Sondre H. Søndergaard" # Eier
+    environment = "Development"           # Beskrivelse av miljø
+}
+sku_tier   = "Free"                    # App Service Plan tier (Free for lav kost)
+sku_size   = "F1"                      # App Service Plan størrelse (F1 for lav kost)
+linux_fx_version = "DOCKER|mcr.microsoft.com/azure-app-service/samples/aspnetcore-helloworld:latest" # Docker-image for Linux Web App
+scm_type   = "LocalGit"                # Source control type
+SOME_KEY   = "some-value"              # Eksempel på app setting
+```
+
+**Forklaring på variabler:**
+- `subscription_id`: Azure-abonnementet ressursene skal opprettes i.
+- `environment`: Navn på miljøet, brukes i ressursnavn og tagging.
+- `name_prefix`: Prefiks for alle ressursnavn, gir unikhet.
+- `location`: Azure-region, f.eks. "Norway East".
+- `vnet_cidr` og `subnet_cidr`: Adresseområder for nettverket.
+- `allow_ssh_cidr`: Hvilke IP-adresser som kan få SSH-tilgang (valgfritt, kun relevant for VM).
+- `tags`: Map med eier, miljø og formål for ressursene.
+- `sku_tier` og `sku_size`: Styrer kostnad for App Service Plan.
+- `linux_fx_version`: Docker-image for Linux Web App.
+- `scm_type`: Source control type (f.eks. LocalGit).
+- `SOME_KEY`: Eksempel på app setting, kan tilpasses.
+
+- `purpose`: Formål med miljøet/prosjektet.
+- `cost_center`: Kostnadssted for ressursene.
+
+Du kan kopiere og tilpasse eksempelet over for Test og Prod, og endre verdier etter behov.
+
 
 ## Verifikasjon
 Outputs fra stacken gir ressursnavn og hostname for webapplikasjonen, slik at du kan kontrollere at alt er opprettet korrekt.

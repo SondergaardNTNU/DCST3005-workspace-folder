@@ -4,5 +4,7 @@ locals {
     environment = var.environment
     owner       = "Sondre H. Søndergaard"
     department  = "Testing"
+    purpose     = "Testing Environment"
+    cost_center = "DCST3005"
   }, var.tags)
 }

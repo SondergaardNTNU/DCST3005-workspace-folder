@@ -9,6 +9,7 @@ variable "environment" {
   
 }
 
+
 variable "name_prefix" {
   type        = string
   description = "Prefiks for ressurser i dette miljøet."
@@ -26,3 +27,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "vnet_cidr" {
+  type        = string
+  description = "CIDR-blokk for det virtuelle nettverket."
+  default     = "10.1.0.0/16"
+}
+
+variable "subnet_cidr" {
+  type        = string
+  description = "CIDR-blokk for subnettet."
+  default     = "10.1.1.0/24"
+}
+
+
+
+
+
+
