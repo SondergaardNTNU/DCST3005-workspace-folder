@@ -75,7 +75,7 @@ Alle forskjeller mellom miljøer styres via inputvariabler, f.eks.:
 - `sku_tier`, `sku_size`: App Service Plan, benytter free tier for lav kost.
 
 ## Outputs
-Stacken eksponerer output til å vise verdier fra infrastrukturen som opprettes etter at en utrulling er fullført. Samt samle og sende videre output til modulene.
+Stacken eksponerer output til å vise verdier fra infrastrukturen som opprettes etter at en utrulling er fullført i CLI. Samt samle og sende videre output til modulene.
 - `app_service_id`: ID for webapplikasjonen.
 - `app_service_default_hostname`: Standard hostname.
 - `network_subnet_id`: Subnett-ID, brukes bla. for å sette opp VNET integrasjon med WebApplikasjonen.
