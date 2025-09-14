@@ -24,6 +24,5 @@ module "network" {
   name_prefix     = var.name_prefix
   vnet_cidr       = var.vnet_cidr
   subnet_cidr     = var.subnet_cidr
-  allow_ssh_cidr  = var.allow_ssh_cidr
   tags            = var.tags
 }
