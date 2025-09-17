@@ -1,3 +1,13 @@
+
+terraform {
+	required_version = ">= 1.3.0"
+	required_providers {
+		azurerm = {
+			source  = "hashicorp/azurerm"
+			version = "4.43.0"
+		}
+	}
+}
 resource "azurerm_public_ip" "vm_public_ip" {
 	name                = "${var.name_prefix}-public-ip"
 	location            = var.location
@@ -26,15 +36,11 @@ resource "azurerm_network_interface" "vm_nic" {
 	}
 }
 
-data "template_file" "cloud_init" {
-	template = <<EOF
-#cloud-config
-package_update: true
-packages:
-	- nginx
-runcmd:
-	- echo "<h1>${var.name_prefix} environment</h1>" > /var/www/html/index.html
-EOF
+
+locals {
+  cloud_init = templatefile("${path.module}/cloud-init.tpl", {
+    name_prefix = var.name_prefix
+  })
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -59,7 +65,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
 		sku       = "18.04-LTS"
 		version   = "latest"
 	}
-	custom_data = base64encode(data.template_file.cloud_init.rendered)
+		custom_data = base64encode(local.cloud_init)
 		tags = {
 			environment = var.name_prefix
 			owner       = "Sondre H. Søndergaard"
