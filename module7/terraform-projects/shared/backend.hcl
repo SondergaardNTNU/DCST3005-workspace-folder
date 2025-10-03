@@ -1,5 +1,5 @@
 resource_group_name     = "rg-tfstate-shs" 
-storage_account_name    = "sttfstateshs
+storage_account_name    = "sttfstateshs"
 container_name          = "tfstate"
 use_azuread_auth        = true
 use_cli                 = true 
