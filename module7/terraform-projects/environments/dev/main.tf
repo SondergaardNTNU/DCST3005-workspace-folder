@@ -49,3 +49,4 @@ resource "azurerm_linux_web_app" "app" {
 }
 
 # siste test med cleanup timer i workflow
+# Kun for demo
