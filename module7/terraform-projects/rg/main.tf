@@ -15,6 +15,6 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "fd-rg" {
-  name     = "rg-demo-shs"
-  location = "Norway East"
+  name     = var.rg_name
+  location = var.rg_location
 }
