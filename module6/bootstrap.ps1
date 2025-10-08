@@ -4,12 +4,12 @@
 ###############################################################
 
 # Set variables (edit to match backend.hcl and your Azure setup)
-$RG_NAME = "rg-tfstate-sondre"           # Resource Group name
+$RG_NAME = ""           # Resource Group name
 $LOCATION = "norwayeast"                 # Azure region
-$STORAGE_ACCOUNT_NAME = "sttfsondre"     # Storage Account name
+$STORAGE_ACCOUNT_NAME = ""     # Storage Account name
 $CONTAINER_NAME = "tfstate"              # Blob Container name
-$SUBSCRIPTION_ID = "a3adf20e-4966-4afb-b717-4de1baae6db1"   # Your Azure subscription ID
-$ASSIGNEE = "sondre.h.sondergaard@ntnu.no" # Your Azure user or SPN object ID
+$SUBSCRIPTION_ID = ""   # Your Azure subscription ID
+$ASSIGNEE = "" # Your Azure user or SPN object ID
 
 # Create Resource Group
 az group create --name $RG_NAME --location $LOCATION

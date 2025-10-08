@@ -67,7 +67,7 @@ resource "azurerm_network_security_rule" "allow_ssh" {
 	protocol                    = "Tcp"
 	source_port_range           = "*"
 	destination_port_range      = "22"
-	source_address_prefix       = "109.108.217.167" # Replace with your public IP or use a variable
+	source_address_prefix       = "" # Replace with your public IP or use a variable
 	destination_address_prefix  = "*"
 	resource_group_name         = azurerm_resource_group.rg.name
 	network_security_group_name = azurerm_network_security_group.nsg.name
