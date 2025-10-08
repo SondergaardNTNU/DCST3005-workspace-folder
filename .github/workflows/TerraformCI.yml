@@ -125,17 +125,17 @@ jobs:
             dev)
               echo "ENVIRONMENT=dev" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=demo" >> $GITHUB_ENV
+              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
               ;;
             test)
               echo "ENVIRONMENT=test" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=demo" >> $GITHUB_ENV
+              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
               ;;
             prod)
               echo "ENVIRONMENT=prod" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=demo" >> $GITHUB_ENV
+              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
               ;;
           esac
       
