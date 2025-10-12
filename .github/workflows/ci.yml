@@ -111,7 +111,7 @@ jobs:
           } >> "$GITHUB_ENV"
       
       - name: Terraform Init
-          working-directory: ${{ env.WORKDIR }}
+        working-directory: ${{ env.WORKDIR }}
         run: |
           terraform init \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
@@ -140,7 +140,7 @@ jobs:
           esac
       
       - name: Terraform Plan
-          working-directory: ${{ env.WORKDIR }}
+        working-directory: ${{ env.WORKDIR }}
         id: plan
         run: |
           # Kjør plan og fang både stdout og stderr
