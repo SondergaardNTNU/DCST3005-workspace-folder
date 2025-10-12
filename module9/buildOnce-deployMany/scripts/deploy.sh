@@ -39,12 +39,13 @@ echo ""
 export ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
 
 # Unpack artifact
+
 tar -xzf $ARTIFACT
 
-cd ../terraform
+cd terraform
 
 echo "🔧 Initializing Terraform with backend config..."
-terraform init -backend-config=../shared/backend.hcl
+terraform init -backend-config=../shared/backend.hcl -backend-config=../backend-configs/backend-$ENVIRONMENT.tfvars
 
 echo "📝 Applying for environment: $ENVIRONMENT"
 terraform apply -var-file=../environments/$ENVIRONMENT.tfvars -auto-approve

@@ -20,10 +20,16 @@ if [ -z "$SUBSCRIPTION_ID" ]; then
 fi
 export ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
 
-cd ../terraform
+
+cd terraform
 
 echo "🔧 Initializing Terraform with backend config..."
-terraform init -backend-config=../shared/backend.hcl
+terraform init -backend-config=../shared/backend.hcl -backend-config=../backend-configs/backend-$ENVIRONMENT.tfvars
 
 echo "🗑️ Destroying resources for environment: $ENVIRONMENT"
+read -p "Are you sure you want to destroy resources for '$ENVIRONMENT'? Type 'yes' to continue: " CONFIRM
+if [ "$CONFIRM" != "yes" ]; then
+	echo "Aborted. No resources destroyed."
+	exit 0
+fi
 terraform destroy -var-file=../environments/$ENVIRONMENT.tfvars -auto-approve

@@ -16,9 +16,11 @@ echo ""
 
 # Validate Terraform
 echo "1️⃣ Validating Terraform..."
-cd ../terraform
+
+
+cd terraform
 terraform fmt -recursive || (echo "⚠️  Run 'terraform fmt -recursive' to fix formatting" && exit 1)
-terraform init -backend=false
+terraform init -reconfigure -backend-config=../shared/backend.hcl -backend-config=../backend-configs/backend-$1.tfvars
 terraform validate
 cd ..
 
@@ -27,12 +29,13 @@ echo ""
 
 # Create artifact
 echo "2️⃣ Creating artifact..."
-ARTIFACT_NAME="terraform-${VERSION}.tar.gz"
+ARTIFACT_NAME="terraform-$1-${VERSION}.tar.gz"
 
 tar -czf $ARTIFACT_NAME \
-	../terraform/ \
-	../environments/ \
-	../shared/
+	terraform/ \
+	backend-configs/backend-$1.tfvars \
+	environments/$1.tfvars \
+	shared/backend.hcl
 
 echo "✅ Artifact created: $ARTIFACT_NAME"
 echo ""
