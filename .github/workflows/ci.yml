@@ -68,7 +68,6 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         id: validate
         run: terraform validate -no-color
-            -backend-config="../shared/backend.hcl" \
   plan-all-environments:
     name: Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
