@@ -113,7 +113,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform init \
-            -backend-config="shared/backend.hcl" \
+            -backend-config="../shared/backend.hcl" \
             -backend-config="key=oblig2/${{ matrix.environment }}/${{ matrix.environment }}.tfstate" \
             -input=false \
             -no-color
