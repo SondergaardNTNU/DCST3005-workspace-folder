@@ -49,13 +49,13 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Terraform Format Check
-        working-directory: ${{ env.WORKDIR }}/terraform
+        working-directory: ${{ env.WORKDIR }}
         id: fmt
         run: terraform fmt -check -recursive
         continue-on-error: true
 
       - name: Terraform Init
-        working-directory: ${{ env.WORKDIR }}/terraform
+        working-directory: ${{ env.WORKDIR }}
         id: init
         run: |
           terraform init \
@@ -65,7 +65,7 @@ jobs:
             -no-color
       
       - name: Terraform Validate
-        working-directory: ${{ env.WORKDIR }}/terraform
+        working-directory: ${{ env.WORKDIR }}
         id: validate
         run: terraform validate -no-color
 
@@ -111,7 +111,7 @@ jobs:
           } >> "$GITHUB_ENV"
       
       - name: Terraform Init
-        working-directory: ${{ env.WORKDIR }}/terraform
+          working-directory: ${{ env.WORKDIR }}
         run: |
           terraform init \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
@@ -140,7 +140,7 @@ jobs:
           esac
       
       - name: Terraform Plan
-        working-directory: ${{ env.WORKDIR }}/terraform
+          working-directory: ${{ env.WORKDIR }}
         id: plan
         run: |
           # Kjør plan og fang både stdout og stderr
