@@ -59,7 +59,7 @@ jobs:
         id: init
         run: |
           terraform init \
-              -backend-config="shared/backend.hcl" \
+            -backend-config="../shared/backend.hcl" \
             -backend-config="key=oblig2/dev/dev.tfstate" \
             -input=false \
             -no-color
@@ -68,7 +68,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         id: validate
         run: terraform validate -no-color
-
+            -backend-config="../shared/backend.hcl" \
   plan-all-environments:
     name: Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
