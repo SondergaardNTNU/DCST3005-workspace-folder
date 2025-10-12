@@ -1,4 +1,4 @@
-name: Deploy Infrastructure
+name: Oblig2 CD
 
 on:
   workflow_dispatch:
