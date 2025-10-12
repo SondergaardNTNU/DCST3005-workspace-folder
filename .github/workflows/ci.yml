@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKDIR: module9/buildOnce-deployMany/terraform
-      BACKEND_CONFIG: module9/buildOnce-deployMany/backend-configs/backend-dev.tfvars
-      TFVARS: module9/buildOnce-deployMany/environments/dev.tfvars
+      BACKEND_CONFIG: ../backend-configs/backend-dev.tfvars
+      TFVARS: ../environments/dev.tfvars
       ENVIRONMENT: dev
     steps:
       - name: Checkout code
@@ -47,8 +47,8 @@ jobs:
     needs: validate-dev
     env:
       WORKDIR: module9/buildOnce-deployMany/terraform
-      BACKEND_CONFIG: module9/buildOnce-deployMany/backend-configs/backend-test.tfvars
-      TFVARS: module9/buildOnce-deployMany/environments/test.tfvars
+      BACKEND_CONFIG: ../backend-configs/backend-test.tfvars
+      TFVARS: ../environments/test.tfvars
       ENVIRONMENT: test
     steps:
       - name: Checkout code
@@ -77,8 +77,8 @@ jobs:
     needs: validate-test
     env:
       WORKDIR: module9/buildOnce-deployMany/terraform
-      BACKEND_CONFIG: module9/buildOnce-deployMany/backend-configs/backend-prod.tfvars
-      TFVARS: module9/buildOnce-deployMany/environments/prod.tfvars
+      BACKEND_CONFIG: ../backend-configs/backend-prod.tfvars
+      TFVARS: ../environments/prod.tfvars
       ENVIRONMENT: prod
     steps:
       - name: Checkout code
