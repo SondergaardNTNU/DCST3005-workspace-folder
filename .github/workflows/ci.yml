@@ -59,7 +59,7 @@ jobs:
         id: init
         run: |
           terraform init \
-            -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
+              -backend-config="shared/backend.hcl" \
             -backend-config="key=oblig2/dev/dev.tfstate" \
             -input=false \
             -no-color
@@ -114,7 +114,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform init \
-            -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
+            -backend-config="shared/backend.hcl" \
             -backend-config="key=oblig2/${{ matrix.environment }}/${{ matrix.environment }}.tfstate" \
             -input=false \
             -no-color
