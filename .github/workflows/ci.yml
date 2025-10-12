@@ -111,7 +111,7 @@ jobs:
           } >> "$GITHUB_ENV"
       
       - name: Terraform Init
-          working-directory: ${{ env.WORKDIR }}
+        working-directory: ${{ env.WORKDIR }}
         run: |
           terraform init \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
