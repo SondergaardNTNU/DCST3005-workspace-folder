@@ -140,7 +140,7 @@ jobs:
           esac
       
       - name: Terraform Plan
-          working-directory: ${{ env.WORKDIR }}
+        working-directory: ${{ env.WORKDIR }}
         id: plan
         run: |
           # Kjør plan og fang både stdout og stderr
