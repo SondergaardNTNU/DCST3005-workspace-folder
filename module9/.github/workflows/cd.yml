@@ -1,24 +1,38 @@
-name: Terraform CD
+name: Deploy Infrastructure
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'module9/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, test, prod)'
+        required: true
+        default: 'dev'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        env: [dev, test, prod]
-    environment: ${{ matrix.env }}
+    environment: ${{ github.event.inputs.environment }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-      - name: Deploy
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Azure CLI
+        uses: azure/cli@v1
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+      - name: Build artifact
         run: |
-          terraform init -backend-config=../../shared/backend.hcl -backend-config="key=environments/${{ matrix.env }}/${{ matrix.env }}.tfstate"
-          terraform apply -auto-approve -var-file="../../environments/${{ matrix.env }}.tfvars"
-        working-directory: module9/terraform
+          chmod +x module9/buildOnce-deployMany/scripts/build.sh
+          cd module9/buildOnce-deployMany
+          ./scripts/build.sh ${{ github.event.inputs.environment }}
+      - name: Find artifact name
+        id: artifact
+        run: echo "name=terraform-${{ github.event.inputs.environment }}-$(git rev-parse --short HEAD).tar.gz" >> $GITHUB_OUTPUT
+      - name: Deploy infrastructure
+        run: |
+          chmod +x module9/buildOnce-deployMany/scripts/deploy.sh
+          cd module9/buildOnce-deployMany
+          ./scripts/deploy.sh ${{ github.event.inputs.environment }} ${{ steps.artifact.outputs.name }}
+      - name: Output Terraform state
+        run: |
+          cd module9/buildOnce-deployMany/terraform
+          terraform output

@@ -12,15 +12,21 @@ jobs:
       matrix:
         env: [dev, test, prod]
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-      - name: Terraform fmt
-        run: terraform fmt -recursive
-        working-directory: module9/terraform
-      - name: Terraform validate
-        run: terraform validate
-        working-directory: module9/terraform
-      - name: Terraform plan
-        run: terraform plan -var-file="../../environments/${{ matrix.env }}.tfvars"
-        working-directory: module9/terraform
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Azure CLI
+        uses: azure/cli@v1
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+      - name: Build artifact
+        run: |
+          chmod +x module9/buildOnce-deployMany/scripts/build.sh
+          cd module9/buildOnce-deployMany
+          ./scripts/build.sh ${{ matrix.env }}
+      - name: Validate Terraform
+        run: |
+          cd module9/buildOnce-deployMany/terraform
+          terraform init -reconfigure -backend-config=../shared/backend.hcl -backend-config=../backend-configs/backend-${{ matrix.env }}.tfvars
+          terraform fmt -recursive
+          terraform validate
+          terraform plan -var-file=../environments/${{ matrix.env }}.tfvars
