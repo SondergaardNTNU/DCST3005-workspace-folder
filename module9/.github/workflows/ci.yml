@@ -1,0 +1,26 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - 'module9/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [dev, test, prod]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt
+        run: terraform fmt -recursive
+        working-directory: module9/terraform
+      - name: Terraform validate
+        run: terraform validate
+        working-directory: module9/terraform
+      - name: Terraform plan
+        run: terraform plan -var-file="../../environments/${{ matrix.env }}.tfvars"
+        working-directory: module9/terraform

@@ -1,0 +1,24 @@
+name: Terraform CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'module9/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [dev, test, prod]
+    environment: ${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Deploy
+        run: |
+          terraform init -backend-config=../../shared/backend.hcl -backend-config="key=environments/${{ matrix.env }}/${{ matrix.env }}.tfstate"
+          terraform apply -auto-approve -var-file="../../environments/${{ matrix.env }}.tfvars"
+        working-directory: module9/terraform
