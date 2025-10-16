@@ -18,7 +18,7 @@ jobs:
     environment: dev
     env:
       WORKDIR: "module9/buildOnce-deployMany/terraform"
-      BACKEND_HCL: "module9/buildOnce-deployMany/terraform/shared/backend.hcl"
+      BACKEND_HCL: "module9/buildOnce-deployMany/shared/backend.hcl"
       TF_INPUT: "false"
       TF_IN_AUTOMATION: "true"
       ENVIRONMENT: "dev"
@@ -83,7 +83,7 @@ jobs:
     environment: test
     env:
       WORKDIR: "module9/buildOnce-deployMany/terraform"
-      BACKEND_HCL: "module9/buildOnce-deployMany/terraform/shared/backend.hcl"
+      BACKEND_HCL: "module9/buildOnce-deployMany/shared/backend.hcl"
       TF_INPUT: "false"
       TF_IN_AUTOMATION: "true"
       ENVIRONMENT: "test"
@@ -148,7 +148,7 @@ jobs:
     environment: prod
     env:
       WORKDIR: "module9/buildOnce-deployMany/terraform"
-      BACKEND_HCL: "module9/buildOnce-deployMany/terraform/shared/backend.hcl"
+      BACKEND_HCL: "module9/buildOnce-deployMany/shared/backend.hcl"
       TF_INPUT: "false"
       TF_IN_AUTOMATION: "true"
       ENVIRONMENT: "prod"
