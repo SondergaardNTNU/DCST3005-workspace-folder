@@ -127,6 +127,18 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
+          # Quick checks: ensure TFVARS_FILE is set and non-empty
+          if [ -z "${TFVARS_FILE:-}" ]; then
+            echo "TFVARS_FILE is not set" >&2
+            exit 1
+          fi
+          echo "TFVARS_FILE present: $TFVARS_FILE"
+          echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
+
+          # Validate variables and configuration before applying
+          terraform validate -var-file="$TFVARS_FILE" -no-color
+
+          # Apply
           terraform apply -auto-approve \
             -var-file="$TFVARS_FILE" \
             -no-color
@@ -197,6 +209,13 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
+          if [ -z "${TFVARS_FILE:-}" ]; then
+            echo "TFVARS_FILE is not set" >&2
+            exit 1
+          fi
+          echo "TFVARS_FILE present: $TFVARS_FILE"
+          echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
+          terraform validate -var-file="$TFVARS_FILE" -no-color
           terraform apply -auto-approve \
             -var-file="$TFVARS_FILE" \
             -no-color
@@ -267,6 +286,13 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
+          if [ -z "${TFVARS_FILE:-}" ]; then
+            echo "TFVARS_FILE is not set" >&2
+            exit 1
+          fi
+          echo "TFVARS_FILE present: $TFVARS_FILE"
+          echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
+          terraform validate -var-file="$TFVARS_FILE" -no-color
           terraform apply -auto-approve \
             -var-file="$TFVARS_FILE" \
             -no-color
