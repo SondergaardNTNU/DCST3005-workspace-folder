@@ -59,18 +59,59 @@ jobs:
             -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
+
+      - name: Prepare environment tfvars (repo or secrets)
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "Committed var-file not found, attempting to create from secrets"
+          case "${{ env.ENVIRONMENT }}" in
+            dev)
+              TFVARS_CONTENT="${{ secrets.DEV_TFVARS }}"
+              ;;
+            test)
+              TFVARS_CONTENT="${{ secrets.TEST_TFVARS }}"
+              ;;
+            prod)
+              TFVARS_CONTENT="${{ secrets.PROD_TFVARS }}"
+              ;;
+            *)
+              echo "Unknown environment: ${{ env.ENVIRONMENT }}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [ -z "${TFVARS_CONTENT}" ]; then
+            echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}' - set DEV_TFVARS/TEST_TFVARS/PROD_TFVARS." >&2
+            exit 1
+          fi
+
+          TMPFILE=$(mktemp)
+          umask 077
+          printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+          echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
       
       - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \
-            -var="storage_tier=${{ env.STORAGE_TIER }}" \
-            -var="replication=${{ env.REPLICATION }}" \
-            -var="tags={${{ env.TAGS }}}" \
+            -var-file="$TFVARS_FILE" \
             -no-color
+
+      - name: Cleanup temp tfvars
+        if: always()
+        run: |
+          if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
+            rm -f "$TFVARS_FILE" || true
+          fi
       
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -132,13 +173,15 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \ 
-            -var="storage_tier=${{ env.STORAGE_TIER }}" \
-            -var="replication=${{ env.REPLICATION }}" \
-            -var="tags={${{ env.TAGS }}}" \
+            -var-file="$TFVARS_FILE" \
             -no-color
+
+      - name: Cleanup temp tfvars
+        if: always()
+        run: |
+          if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
+            rm -f "$TFVARS_FILE" || true
+          fi
       
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -200,13 +243,15 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \ 
-            -var="storage_tier=${{ env.STORAGE_TIER }}" \
-            -var="replication=${{ env.REPLICATION }}" \
-            -var="tags={${{ env.TAGS }}}" \
+            -var-file="$TFVARS_FILE" \
             -no-color
+
+      - name: Cleanup temp tfvars
+        if: always()
+        run: |
+          if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
+            rm -f "$TFVARS_FILE" || true
+          fi
       
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}

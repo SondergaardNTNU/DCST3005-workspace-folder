@@ -118,34 +118,49 @@ jobs:
             -input=false \
             -no-color
       
-      - name: Set Environment Variables
+      - name: Prepare environment tfvars (repo or secrets)
+        # Prefer committed per-environment tfvars. If absent (gitignored), build from
+        # repository secrets: DEV_TFVARS, TEST_TFVARS, PROD_TFVARS. Do NOT print secret contents.
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ matrix.environment }}.tfvars"
         run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "Committed var-file not found, attempting to create from secrets"
+
           case "${{ matrix.environment }}" in
             dev)
-              echo "ENVIRONMENT=dev" >> $GITHUB_ENV
-              echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
-              echo "STORAGE_TIER=Standard" >> $GITHUB_ENV
-              echo "REPLICATION=LRS" >> $GITHUB_ENV
-              echo 'TAGS="env=dev,owner=Sondre H. Søndergaard,project=DCST3005"' >> $GITHUB_ENV
+              # Set by repository or environment secrets: DEV_TFVARS
+              TFVARS_CONTENT="${{ secrets.DEV_TFVARS }}"
               ;;
             test)
-              echo "ENVIRONMENT=test" >> $GITHUB_ENV
-              echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
-              echo "STORAGE_TIER=Standard" >> $GITHUB_ENV
-              echo "REPLICATION=LRS" >> $GITHUB_ENV
-              echo 'TAGS="env=test,owner=Sondre H. Søndergaard,project=DCST3005"' >> $GITHUB_ENV
+              TFVARS_CONTENT="${{ secrets.TEST_TFVARS }}"
               ;;
             prod)
-              echo "ENVIRONMENT=prod" >> $GITHUB_ENV
-              echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
-              echo "STORAGE_TIER=Premium" >> $GITHUB_ENV
-              echo "REPLICATION=GRS" >> $GITHUB_ENV
-              echo 'TAGS="env=prod,owner=Sondre H. Søndergaard,project=DCST3005"' >> $GITHUB_ENV
+              TFVARS_CONTENT="${{ secrets.PROD_TFVARS }}"
+              ;;
+            *)
+              echo "Unknown environment: ${{ matrix.environment }}" >&2
+              exit 1
               ;;
           esac
+
+          if [ -z "${TFVARS_CONTENT}" ]; then
+            echo "No tfvars content found in secrets for '${{ matrix.environment }}' - set DEV_TFVARS/TEST_TFVARS/PROD_TFVARS." >&2
+            exit 1
+          fi
+
+          # Create a temp file for terraform to consume. Keep file mode private.
+          TMPFILE=$(mktemp)
+          umask 077
+          printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+          echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
       
       - name: Terraform Plan
         working-directory: ${{ env.WORKDIR }}
@@ -154,12 +169,7 @@ jobs:
           # Kjør plan og fang både stdout og stderr
           set +e  # Ikke stopp ved feil
           terraform plan -no-color \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \
-            -var="storage_tier=${{ env.STORAGE_TIER }}" \
-            -var="replication=${{ env.REPLICATION }}" \
-            -var="tags={${{ env.TAGS }}}" \
+            -var-file="$TFVARS_FILE" \
             -out=${{ matrix.environment }}.tfplan 2>&1 | tee plan-output.txt
           
           PLAN_EXIT_CODE=${PIPESTATUS[0]}
