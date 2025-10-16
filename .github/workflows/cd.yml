@@ -64,9 +64,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \
+            -var-file="../environments/${{ env.ENVIRONMENT }}.tfvars" \
             -no-color
       
       - name: Terraform Output
@@ -129,9 +127,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \
+            -var-file="../environments/${{ env.ENVIRONMENT }}.tfvars" \
             -no-color
       
       - name: Terraform Output
@@ -194,9 +190,7 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="location=${{ env.LOCATION }}" \
-            -var="project_name=${{ env.PROJECT_NAME }}" \
+            -var-file="../environments/${{ env.ENVIRONMENT }}.tfvars" \
             -no-color
       
       - name: Terraform Output
