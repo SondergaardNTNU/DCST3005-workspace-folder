@@ -63,6 +63,9 @@ jobs:
       - name: Prepare environment tfvars (repo or secrets)
         env:
           REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
         run: |
           set -euo pipefail
           TFVARS_PATH="$REPO_TFVARS"
@@ -75,13 +78,13 @@ jobs:
           echo "Committed var-file not found, attempting to create from secrets"
           case "${{ env.ENVIRONMENT }}" in
             dev)
-              TFVARS_CONTENT="${{ secrets.DEV_TFVARS }}"
+              TFVARS_CONTENT="$DEV_TFVARS"
               ;;
             test)
-              TFVARS_CONTENT="${{ secrets.TEST_TFVARS }}"
+              TFVARS_CONTENT="$TEST_TFVARS"
               ;;
             prod)
-              TFVARS_CONTENT="${{ secrets.PROD_TFVARS }}"
+              TFVARS_CONTENT="$PROD_TFVARS"
               ;;
             *)
               echo "Unknown environment: ${{ env.ENVIRONMENT }}" >&2
@@ -89,7 +92,7 @@ jobs:
               ;;
           esac
 
-          if [ -z "${TFVARS_CONTENT}" ]; then
+          if [ -z "${TFVARS_CONTENT:-}" ]; then
             echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}' - set DEV_TFVARS/TEST_TFVARS/PROD_TFVARS." >&2
             exit 1
           fi
