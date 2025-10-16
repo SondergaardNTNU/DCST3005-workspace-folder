@@ -24,33 +24,31 @@ jobs:
       ENVIRONMENT: "dev"
       LOCATION: "norwayeast"
       PROJECT_NAME: "shs"
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.3
           terraform_wrapper: false
-
+      
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Export ARM_* for Terraform (OIDC)
+      
+      - name: Export ARM_* for Terraform
         run: |
-          {
-            echo "ARM_USE_OIDC=true"
-            echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}"
-            echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"
-            echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          } >> "$GITHUB_ENV"
-
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+      
       - name: Terraform Init
         working-directory: ${{ env.WORKDIR }}
         run: |
@@ -60,70 +58,43 @@ jobs:
             -input=false \
             -no-color
 
-      - name: Prepare environment tfvars (repo or secrets)
+      - name: Prepare environment tfvars
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
         run: |
           set -euo pipefail
-          TFVARS_PATH="module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          TFVARS_PATH="$REPO_TFVARS"
           if [ -f "$TFVARS_PATH" ]; then
             echo "Using committed var-file: $TFVARS_PATH"
             echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
           else
+            case "${{ env.ENVIRONMENT }}" in
+              dev) TFVARS_CONTENT="$DEV_TFVARS" ;;
+              test) TFVARS_CONTENT="$TEST_TFVARS" ;;
+              prod) TFVARS_CONTENT="$PROD_TFVARS" ;;
+              *) echo "Unknown environment: ${{ env.ENVIRONMENT }}" >&2; exit 1 ;;
+            esac
             TMPFILE=$(mktemp)
             umask 077
-            case "${{ env.ENVIRONMENT }}" in
-              dev)
-                printf '%s\n' "${{ secrets.DEV_TFVARS }}" > "$TMPFILE"
-                ;;
-              test)
-                printf '%s\n' "${{ secrets.TEST_TFVARS }}" > "$TMPFILE"
-                ;;
-              prod)
-                printf '%s\n' "${{ secrets.PROD_TFVARS }}" > "$TMPFILE"
-                ;;
-              *)
-                echo "No tfvars available for environment: ${{ env.ENVIRONMENT }}" >&2
-                exit 1
-                ;;
-            esac
-            if [ ! -s "$TMPFILE" ]; then
-              echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}'" >&2
-              exit 1
-            fi
+            printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
             echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
           fi
 
-      - name: 🔍 Debug tfvars file
-        if: always()
-        run: |
-          echo "----- TFVARS FILE CONTENT -----"
-          if [ -f "$TFVARS_FILE" ]; then
-            sed -E 's/(owner\s*=\s*").*(")/\1***REDACTED***\2/' "$TFVARS_FILE"
-          else
-            echo "❌ TFVARS_FILE not found"
-          fi
-          echo "--------------------------------"
-
-      - name: Terraform Plan and Apply
+      - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
-          if [ -z "${TFVARS_FILE:-}" ]; then
-            echo "TFVARS_FILE is not set" >&2
-            exit 1
-          fi
-          echo "TFVARS_FILE present: $TFVARS_FILE"
-          echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
-
-          terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
-          terraform show -no-color tfplan || true
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve \
+            -var-file="$TFVARS_FILE" \
+            -no-color
 
       - name: Cleanup temp tfvars
         if: always()
         run: |
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
-          fi
-          rm -f tfplan || true
 
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -131,7 +102,6 @@ jobs:
         run: |
           echo "### Terraform Outputs for DEV" >> $GITHUB_STEP_SUMMARY
           terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
-
 
   deploy-test:
     name: Deploy to TEST
@@ -164,14 +134,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Export ARM_* for Terraform (OIDC)
+      - name: Export ARM_* for Terraform
         run: |
-          {
-            echo "ARM_USE_OIDC=true"
-            echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}"
-            echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"
-            echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          } >> "$GITHUB_ENV"
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
       - name: Terraform Init
         working-directory: ${{ env.WORKDIR }}
@@ -182,27 +150,38 @@ jobs:
             -input=false \
             -no-color
 
-      - name: Terraform Plan and Apply
+      - name: Prepare environment tfvars
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+          else
+            TFVARS_CONTENT="$TEST_TFVARS"
+            TMPFILE=$(mktemp)
+            umask 077
+            printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
-          if [ -z "${TFVARS_FILE:-}" ]; then
-            echo "TFVARS_FILE is not set" >&2
-            exit 1
-          fi
-          echo "TFVARS_FILE present: $TFVARS_FILE"
-          echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
-
-          terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
-          terraform show -no-color tfplan || true
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve \
+            -var-file="$TFVARS_FILE" \
+            -no-color
 
       - name: Cleanup temp tfvars
         if: always()
         run: |
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
-          fi
-          rm -f tfplan || true
 
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -210,7 +189,6 @@ jobs:
         run: |
           echo "### Terraform Outputs for TEST" >> $GITHUB_STEP_SUMMARY
           terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
-
 
   deploy-prod:
     name: Deploy to PROD
@@ -243,14 +221,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Export ARM_* for Terraform (OIDC)
+      - name: Export ARM_* for Terraform
         run: |
-          {
-            echo "ARM_USE_OIDC=true"
-            echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}"
-            echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"
-            echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-          } >> "$GITHUB_ENV"
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
 
       - name: Terraform Init
         working-directory: ${{ env.WORKDIR }}
@@ -261,27 +237,37 @@ jobs:
             -input=false \
             -no-color
 
-      - name: Terraform Plan and Apply
+      - name: Prepare environment tfvars
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+          else
+            TFVARS_CONTENT="$PROD_TFVARS"
+            TMPFILE=$(mktemp)
+            umask 077
+            printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+
+      - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
-          if [ -z "${TFVARS_FILE:-}" ]; then
-            echo "TFVARS_FILE is not set" >&2
-            exit 1
-          fi
-          echo "TFVARS_FILE present: $TFVARS_FILE"
-          echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
-
-          terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
-          terraform show -no-color tfplan || true
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve \
+            -var-file="$TFVARS_FILE" \
+            -no-color
 
       - name: Cleanup temp tfvars
         if: always()
         run: |
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
-          fi
-          rm -f tfplan || true
 
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
