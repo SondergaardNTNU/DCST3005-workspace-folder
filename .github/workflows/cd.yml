@@ -24,24 +24,24 @@ jobs:
       ENVIRONMENT: "dev"
       LOCATION: "norwayeast"
       PROJECT_NAME: "shs"
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.3
           terraform_wrapper: false
-      
+
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Export ARM_* for Terraform (OIDC)
         run: |
           {
@@ -50,7 +50,7 @@ jobs:
             echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"
             echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           } >> "$GITHUB_ENV"
-      
+
       - name: Terraform Init
         working-directory: ${{ env.WORKDIR }}
         run: |
@@ -59,8 +59,6 @@ jobs:
             -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
-
-      
 
       - name: Prepare environment tfvars (repo or secrets)
         run: |
@@ -74,13 +72,13 @@ jobs:
             umask 077
             case "${{ env.ENVIRONMENT }}" in
               dev)
-                printf '%s' "${{ secrets.DEV_TFVARS }}" > "$TMPFILE"
+                printf '%s\n' "${{ secrets.DEV_TFVARS }}" > "$TMPFILE"
                 ;;
               test)
-                printf '%s' "${{ secrets.TEST_TFVARS }}" > "$TMPFILE"
+                printf '%s\n' "${{ secrets.TEST_TFVARS }}" > "$TMPFILE"
                 ;;
               prod)
-                printf '%s' "${{ secrets.PROD_TFVARS }}" > "$TMPFILE"
+                printf '%s\n' "${{ secrets.PROD_TFVARS }}" > "$TMPFILE"
                 ;;
               *)
                 echo "No tfvars available for environment: ${{ env.ENVIRONMENT }}" >&2
@@ -93,11 +91,21 @@ jobs:
             fi
             echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
           fi
-      
+
+      - name: 🔍 Debug tfvars file
+        if: always()
+        run: |
+          echo "----- TFVARS FILE CONTENT -----"
+          if [ -f "$TFVARS_FILE" ]; then
+            sed -E 's/(owner\s*=\s*").*(")/\1***REDACTED***\2/' "$TFVARS_FILE"
+          else
+            echo "❌ TFVARS_FILE not found"
+          fi
+          echo "--------------------------------"
+
       - name: Terraform Plan and Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
-          # Quick checks: ensure TFVARS_FILE is set and non-empty
           if [ -z "${TFVARS_FILE:-}" ]; then
             echo "TFVARS_FILE is not set" >&2
             exit 1
@@ -105,13 +113,8 @@ jobs:
           echo "TFVARS_FILE present: $TFVARS_FILE"
           echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
 
-          # Plan (validates tfvars + configuration). Save plan to a file.
           terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
-
-          # Show the plan in logs for easier review
           terraform show -no-color tfplan || true
-
-          # Apply the exact plan
           terraform apply -auto-approve tfplan
 
       - name: Cleanup temp tfvars
@@ -120,15 +123,15 @@ jobs:
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
           fi
-          # Remove any saved terraform plan
           rm -f tfplan || true
-      
+
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
         id: output
         run: |
           echo "### Terraform Outputs for DEV" >> $GITHUB_STEP_SUMMARY
           terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
+
 
   deploy-test:
     name: Deploy to TEST
@@ -143,24 +146,24 @@ jobs:
       ENVIRONMENT: "test"
       LOCATION: "norwayeast"
       PROJECT_NAME: "shs"
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.3
           terraform_wrapper: false
-      
+
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Export ARM_* for Terraform (OIDC)
         run: |
           {
@@ -169,7 +172,7 @@ jobs:
             echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"
             echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           } >> "$GITHUB_ENV"
-      
+
       - name: Terraform Init
         working-directory: ${{ env.WORKDIR }}
         run: |
@@ -178,7 +181,7 @@ jobs:
             -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
-      
+
       - name: Terraform Plan and Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
@@ -199,15 +202,15 @@ jobs:
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
           fi
-          # Remove any saved terraform plan
           rm -f tfplan || true
-      
+
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
         id: output
         run: |
           echo "### Terraform Outputs for TEST" >> $GITHUB_STEP_SUMMARY
           terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
+
 
   deploy-prod:
     name: Deploy to PROD
@@ -222,24 +225,24 @@ jobs:
       ENVIRONMENT: "prod"
       LOCATION: "norwayeast"
       PROJECT_NAME: "shs"
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.3
           terraform_wrapper: false
-      
+
       - name: Azure Login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Export ARM_* for Terraform (OIDC)
         run: |
           {
@@ -248,7 +251,7 @@ jobs:
             echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"
             echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}"
           } >> "$GITHUB_ENV"
-      
+
       - name: Terraform Init
         working-directory: ${{ env.WORKDIR }}
         run: |
@@ -257,7 +260,7 @@ jobs:
             -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
-      
+
       - name: Terraform Plan and Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
@@ -278,16 +281,15 @@ jobs:
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
           fi
-          # Remove any saved terraform plan
           rm -f tfplan || true
-      
+
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
         id: output
         run: |
           echo "### Terraform Outputs for PROD" >> $GITHUB_STEP_SUMMARY
           terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
-      
+
       - name: Deployment Summary
         run: |
           echo "## 🎉 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
