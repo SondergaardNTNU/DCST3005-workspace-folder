@@ -13,4 +13,4 @@ resource "azurerm_storage_account" "main" {
   account_replication_type = var.replication
   tags                     = var.tags
 }
-# comment for testing git workflow
+# comment for testing git workflow a
