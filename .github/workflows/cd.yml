@@ -61,46 +61,68 @@ jobs:
             -no-color
 
       - name: Prepare environment tfvars (repo or secrets)
-        env:
-          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
-          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
-          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
-          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
         run: |
           set -euo pipefail
-          TFVARS_PATH="$REPO_TFVARS"
+          TFVARS_PATH="module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
           if [ -f "$TFVARS_PATH" ]; then
             echo "Using committed var-file: $TFVARS_PATH"
             echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
-            exit 0
-          fi
-
-          echo "Committed var-file not found, attempting to create from secrets"
-          case "${{ env.ENVIRONMENT }}" in
-            dev)
-              TFVARS_CONTENT="$DEV_TFVARS"
-              ;;
-            test)
-              TFVARS_CONTENT="$TEST_TFVARS"
-              ;;
-            prod)
-              TFVARS_CONTENT="$PROD_TFVARS"
-              ;;
-            *)
-              echo "Unknown environment: ${{ env.ENVIRONMENT }}" >&2
+          else
+            TMPFILE=$(mktemp)
+            umask 077
+            case "${{ env.ENVIRONMENT }}" in
+              dev)
+                printf '%s' "${{ secrets.DEV_TFVARS }}" > "$TMPFILE"
+                ;;
+              test)
+                printf '%s' "${{ secrets.TEST_TFVARS }}" > "$TMPFILE"
+                ;;
+              prod)
+                printf '%s' "${{ secrets.PROD_TFVARS }}" > "$TMPFILE"
+                ;;
+              *)
+                echo "No tfvars available for environment: ${{ env.ENVIRONMENT }}" >&2
+                exit 1
+                ;;
+            esac
+            if [ ! -s "$TMPFILE" ]; then
+              echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}'" >&2
               exit 1
-              ;;
-          esac
-
-          if [ -z "${TFVARS_CONTENT:-}" ]; then
-            echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}' - set DEV_TFVARS/TEST_TFVARS/PROD_TFVARS." >&2
-            exit 1
+            fi
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
           fi
 
-          TMPFILE=$(mktemp)
-          umask 077
-          printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
-          echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+      - name: Prepare environment tfvars (repo or secrets)
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+          else
+            TMPFILE=$(mktemp)
+            umask 077
+            case "${{ env.ENVIRONMENT }}" in
+              dev)
+                printf '%s' "${{ secrets.DEV_TFVARS }}" > "$TMPFILE"
+                ;;
+              test)
+                printf '%s' "${{ secrets.TEST_TFVARS }}" > "$TMPFILE"
+                ;;
+              prod)
+                printf '%s' "${{ secrets.PROD_TFVARS }}" > "$TMPFILE"
+                ;;
+              *)
+                echo "No tfvars available for environment: ${{ env.ENVIRONMENT }}" >&2
+                exit 1
+                ;;
+            esac
+            if [ ! -s "$TMPFILE" ]; then
+              echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}'" >&2
+              exit 1
+            fi
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+          fi
       
       - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
