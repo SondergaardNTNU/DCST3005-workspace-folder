@@ -21,7 +21,6 @@ jobs:
       BACKEND_HCL: "module9/buildOnce-deployMany/terraform/shared/backend.hcl"
       TF_INPUT: "false"
       TF_IN_AUTOMATION: "true"
-      TF_CLI_ARGS_validate: "-var-file=../environments/dev.tfvars"
       
     steps:
       - name: Checkout
@@ -119,7 +118,25 @@ jobs:
             -input=false \
             -no-color
       
-      # Per-environment input is provided by the tfvars files in ../environments/
+      - name: Set Environment Variables
+        run: |
+          case "${{ matrix.environment }}" in
+            dev)
+              echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+              echo "LOCATION=norwayeast" >> $GITHUB_ENV
+              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+              ;;
+            test)
+              echo "ENVIRONMENT=test" >> $GITHUB_ENV
+              echo "LOCATION=norwayeast" >> $GITHUB_ENV
+              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+              ;;
+            prod)
+              echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+              echo "LOCATION=norwayeast" >> $GITHUB_ENV
+              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+              ;;
+          esac
       
       - name: Terraform Plan
         working-directory: ${{ env.WORKDIR }}
@@ -128,7 +145,9 @@ jobs:
           # Kjør plan og fang både stdout og stderr
           set +e  # Ikke stopp ved feil
           terraform plan -no-color \
-            -var-file="../environments/${{ matrix.environment }}.tfvars" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="location=${{ env.LOCATION }}" \
+            -var="project_name=${{ env.PROJECT_NAME }}" \
             -out=${{ matrix.environment }}.tfplan 2>&1 | tee plan-output.txt
           
           PLAN_EXIT_CODE=${PIPESTATUS[0]}
