@@ -268,6 +268,7 @@ jobs:
         run: |
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
+          fi
 
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
