@@ -67,9 +67,7 @@ jobs:
       - name: Terraform Validate
         working-directory: ${{ env.WORKDIR }}
         id: validate
-        run: |
-          # Use environment-specific tfvars so required variables are provided
-          terraform validate -no-color -var-file="../environments/dev.tfvars"
+        run: terraform validate -no-color
   plan-all-environments:
     name: Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
@@ -127,6 +125,7 @@ jobs:
               echo "ENVIRONMENT=dev" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
               echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+
               ;;
             test)
               echo "ENVIRONMENT=test" >> $GITHUB_ENV
@@ -147,8 +146,9 @@ jobs:
           # Kjør plan og fang både stdout og stderr
           set +e  # Ikke stopp ved feil
           terraform plan -no-color \
-            -var-file="../environments/${{ matrix.environment }}.tfvars" \
-            -var="location=${LOCATION}" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="location=${{ env.LOCATION }}" \
+            -var="project_name=${{ env.PROJECT_NAME }}" \
             -out=${{ matrix.environment }}.tfplan 2>&1 | tee plan-output.txt
           
           PLAN_EXIT_CODE=${PIPESTATUS[0]}
