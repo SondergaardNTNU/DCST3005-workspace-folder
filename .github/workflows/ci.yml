@@ -125,16 +125,25 @@ jobs:
               echo "ENVIRONMENT=dev" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
               echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+              echo "STORAGE_TIER=Standard" >> $GITHUB_ENV
+              echo "REPLICATION=LRS" >> $GITHUB_ENV
+              echo 'TAGS="env=dev,owner=Sondre H. Søndergaard,project=DCST3005"' >> $GITHUB_ENV
               ;;
             test)
               echo "ENVIRONMENT=test" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
               echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+              echo "STORAGE_TIER=Standard" >> $GITHUB_ENV
+              echo "REPLICATION=LRS" >> $GITHUB_ENV
+              echo 'TAGS="env=test,owner=Sondre H. Søndergaard,project=DCST3005"' >> $GITHUB_ENV
               ;;
             prod)
               echo "ENVIRONMENT=prod" >> $GITHUB_ENV
               echo "LOCATION=norwayeast" >> $GITHUB_ENV
               echo "PROJECT_NAME=shs" >> $GITHUB_ENV
+              echo "STORAGE_TIER=Premium" >> $GITHUB_ENV
+              echo "REPLICATION=GRS" >> $GITHUB_ENV
+              echo 'TAGS="env=prod,owner=Sondre H. Søndergaard,project=DCST3005"' >> $GITHUB_ENV
               ;;
           esac
       
@@ -148,6 +157,9 @@ jobs:
             -var="environment=${{ env.ENVIRONMENT }}" \
             -var="location=${{ env.LOCATION }}" \
             -var="project_name=${{ env.PROJECT_NAME }}" \
+            -var="storage_tier=${{ env.STORAGE_TIER }}" \
+            -var="replication=${{ env.REPLICATION }}" \
+            -var="tags={${{ env.TAGS }}}" \
             -out=${{ matrix.environment }}.tfplan 2>&1 | tee plan-output.txt
           
           PLAN_EXIT_CODE=${PIPESTATUS[0]}

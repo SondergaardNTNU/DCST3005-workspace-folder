@@ -64,7 +64,12 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var-file="../environments/${{ env.ENVIRONMENT }}.tfvars" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="location=${{ env.LOCATION }}" \
+            -var="project_name=${{ env.PROJECT_NAME }}" \
+            -var="storage_tier=${{ env.STORAGE_TIER }}" \
+            -var="replication=${{ env.REPLICATION }}" \
+            -var="tags={${{ env.TAGS }}}" \
             -no-color
       
       - name: Terraform Output
@@ -127,7 +132,12 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var-file="../environments/${{ env.ENVIRONMENT }}.tfvars" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="location=${{ env.LOCATION }}" \
+            -var="project_name=${{ env.PROJECT_NAME }}" \ 
+            -var="storage_tier=${{ env.STORAGE_TIER }}" \
+            -var="replication=${{ env.REPLICATION }}" \
+            -var="tags={${{ env.TAGS }}}" \
             -no-color
       
       - name: Terraform Output
@@ -190,7 +200,12 @@ jobs:
         working-directory: ${{ env.WORKDIR }}
         run: |
           terraform apply -auto-approve \
-            -var-file="../environments/${{ env.ENVIRONMENT }}.tfvars" \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="location=${{ env.LOCATION }}" \
+            -var="project_name=${{ env.PROJECT_NAME }}" \ 
+            -var="storage_tier=${{ env.STORAGE_TIER }}" \
+            -var="replication=${{ env.REPLICATION }}" \
+            -var="tags={${{ env.TAGS }}}" \
             -no-color
       
       - name: Terraform Output
