@@ -124,7 +124,7 @@ jobs:
             echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
           fi
       
-      - name: Terraform Apply
+      - name: Terraform Plan and Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
           # Quick checks: ensure TFVARS_FILE is set and non-empty
@@ -135,13 +135,14 @@ jobs:
           echo "TFVARS_FILE present: $TFVARS_FILE"
           echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
 
-          # Validate variables and configuration before applying
-          terraform validate -var-file="$TFVARS_FILE" -no-color
+          # Plan (validates tfvars + configuration). Save plan to a file.
+          terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
 
-          # Apply
-          terraform apply -auto-approve \
-            -var-file="$TFVARS_FILE" \
-            -no-color
+          # Show the plan in logs for easier review
+          terraform show -no-color tfplan || true
+
+          # Apply the exact plan
+          terraform apply -auto-approve tfplan
 
       - name: Cleanup temp tfvars
         if: always()
@@ -149,6 +150,8 @@ jobs:
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
           fi
+          # Remove any saved terraform plan
+          rm -f tfplan || true
       
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -226,6 +229,8 @@ jobs:
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
           fi
+          # Remove any saved terraform plan
+          rm -f tfplan || true
       
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -303,6 +308,8 @@ jobs:
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
           fi
+          # Remove any saved terraform plan
+          rm -f tfplan || true
       
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
