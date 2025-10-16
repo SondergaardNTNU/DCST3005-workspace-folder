@@ -21,6 +21,7 @@ jobs:
       BACKEND_HCL: "module9/buildOnce-deployMany/terraform/shared/backend.hcl"
       TF_INPUT: "false"
       TF_IN_AUTOMATION: "true"
+      TF_CLI_ARGS_validate: "-var-file=../environments/dev.tfvars"
       
     steps:
       - name: Checkout
@@ -67,9 +68,7 @@ jobs:
       - name: Terraform Validate
         working-directory: ${{ env.WORKDIR }}
         id: validate
-        run: |
-          # Use environment-specific tfvars so required variables are provided
-          terraform validate -no-color -var-file="../environments/dev.tfvars"
+        run: terraform validate -no-color
   plan-all-environments:
     name: Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest
@@ -120,25 +119,7 @@ jobs:
             -input=false \
             -no-color
       
-      - name: Set Environment Variables
-        run: |
-          case "${{ matrix.environment }}" in
-            dev)
-              echo "ENVIRONMENT=dev" >> $GITHUB_ENV
-              echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
-              ;;
-            test)
-              echo "ENVIRONMENT=test" >> $GITHUB_ENV
-              echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
-              ;;
-            prod)
-              echo "ENVIRONMENT=prod" >> $GITHUB_ENV
-              echo "LOCATION=norwayeast" >> $GITHUB_ENV
-              echo "PROJECT_NAME=shs" >> $GITHUB_ENV
-              ;;
-          esac
+      # Per-environment input is provided by the tfvars files in ../environments/
       
       - name: Terraform Plan
         working-directory: ${{ env.WORKDIR }}
@@ -148,7 +129,6 @@ jobs:
           set +e  # Ikke stopp ved feil
           terraform plan -no-color \
             -var-file="../environments/${{ matrix.environment }}.tfvars" \
-            -var="location=${LOCATION}" \
             -out=${{ matrix.environment }}.tfplan 2>&1 | tee plan-output.txt
           
           PLAN_EXIT_CODE=${PIPESTATUS[0]}
