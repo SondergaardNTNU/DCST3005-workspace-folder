@@ -95,6 +95,7 @@ jobs:
         run: |
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
+          fi
 
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -182,6 +183,7 @@ jobs:
         run: |
           if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
             rm -f "$TFVARS_FILE" || true
+          fi
 
       - name: Terraform Output
         working-directory: ${{ env.WORKDIR }}
@@ -255,6 +257,7 @@ jobs:
             umask 077
             printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
             echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+          fi
 
       - name: Terraform Apply
         working-directory: ${{ env.WORKDIR }}
