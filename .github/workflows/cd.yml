@@ -60,37 +60,7 @@ jobs:
             -input=false \
             -no-color
 
-      - name: Prepare environment tfvars (repo or secrets)
-        run: |
-          set -euo pipefail
-          TFVARS_PATH="module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
-          if [ -f "$TFVARS_PATH" ]; then
-            echo "Using committed var-file: $TFVARS_PATH"
-            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
-          else
-            TMPFILE=$(mktemp)
-            umask 077
-            case "${{ env.ENVIRONMENT }}" in
-              dev)
-                printf '%s' "${{ secrets.DEV_TFVARS }}" > "$TMPFILE"
-                ;;
-              test)
-                printf '%s' "${{ secrets.TEST_TFVARS }}" > "$TMPFILE"
-                ;;
-              prod)
-                printf '%s' "${{ secrets.PROD_TFVARS }}" > "$TMPFILE"
-                ;;
-              *)
-                echo "No tfvars available for environment: ${{ env.ENVIRONMENT }}" >&2
-                exit 1
-                ;;
-            esac
-            if [ ! -s "$TMPFILE" ]; then
-              echo "No tfvars content found in secrets for '${{ env.ENVIRONMENT }}'" >&2
-              exit 1
-            fi
-            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
-          fi
+      
 
       - name: Prepare environment tfvars (repo or secrets)
         run: |
@@ -209,7 +179,7 @@ jobs:
             -input=false \
             -no-color
       
-      - name: Terraform Apply
+      - name: Terraform Plan and Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
           if [ -z "${TFVARS_FILE:-}" ]; then
@@ -218,10 +188,10 @@ jobs:
           fi
           echo "TFVARS_FILE present: $TFVARS_FILE"
           echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
-          terraform validate -var-file="$TFVARS_FILE" -no-color
-          terraform apply -auto-approve \
-            -var-file="$TFVARS_FILE" \
-            -no-color
+
+          terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
+          terraform show -no-color tfplan || true
+          terraform apply -auto-approve tfplan
 
       - name: Cleanup temp tfvars
         if: always()
@@ -288,7 +258,7 @@ jobs:
             -input=false \
             -no-color
       
-      - name: Terraform Apply
+      - name: Terraform Plan and Apply
         working-directory: ${{ env.WORKDIR }}
         run: |
           if [ -z "${TFVARS_FILE:-}" ]; then
@@ -297,10 +267,10 @@ jobs:
           fi
           echo "TFVARS_FILE present: $TFVARS_FILE"
           echo -n "TFVARS file size (bytes): " && wc -c < "$TFVARS_FILE" || true
-          terraform validate -var-file="$TFVARS_FILE" -no-color
-          terraform apply -auto-approve \
-            -var-file="$TFVARS_FILE" \
-            -no-color
+
+          terraform plan -var-file="$TFVARS_FILE" -no-color -out=tfplan
+          terraform show -no-color tfplan || true
+          terraform apply -auto-approve tfplan
 
       - name: Cleanup temp tfvars
         if: always()
