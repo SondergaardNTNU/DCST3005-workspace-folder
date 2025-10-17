@@ -1,0 +1,294 @@
+#denne ligger egentlig i DCST3005-workfolder/.github/workflows/cd.yml og ikke i modul9
+#men er tatt med her i forbindelse med innlevering av oblig2
+name: Oblig2 Terraform CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "module9/buildOnce-deployMany/terraform/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    name: Deploy to DEV
+    runs-on: ubuntu-latest
+    environment: dev
+    env:
+      WORKDIR: "module9/buildOnce-deployMany/terraform"
+      BACKEND_HCL: "module9/buildOnce-deployMany/shared/backend.hcl"
+      TF_INPUT: "false"
+      TF_IN_AUTOMATION: "true"
+      ENVIRONMENT: "dev"
+      LOCATION: "norwayeast"
+      PROJECT_NAME: "shs"
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+          terraform_wrapper: false
+      
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Export ARM_* for Terraform
+        run: |
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+      
+      - name: Terraform Init
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform init \
+            -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
+            -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
+            -input=false \
+            -no-color
+
+      - name: Prepare environment tfvars
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+          else
+            case "${{ env.ENVIRONMENT }}" in
+              dev) TFVARS_CONTENT="$DEV_TFVARS" ;;
+              test) TFVARS_CONTENT="$TEST_TFVARS" ;;
+              prod) TFVARS_CONTENT="$PROD_TFVARS" ;;
+              *) echo "Unknown environment: ${{ env.ENVIRONMENT }}" >&2; exit 1 ;;
+            esac
+            TMPFILE=$(mktemp)
+            umask 077
+            printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Apply
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var-file="$TFVARS_FILE" \
+            -no-color
+
+      - name: Cleanup temp tfvars
+        if: always()
+        run: |
+          if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
+            rm -f "$TFVARS_FILE" || true
+          fi
+
+      - name: Terraform Output
+        working-directory: ${{ env.WORKDIR }}
+        id: output
+        run: |
+          echo "### Terraform Outputs for DEV" >> $GITHUB_STEP_SUMMARY
+          terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
+
+  deploy-test:
+    name: Deploy to TEST
+    runs-on: ubuntu-latest
+    needs: deploy-dev
+    environment: test
+    env:
+      WORKDIR: "module9/buildOnce-deployMany/terraform"
+      BACKEND_HCL: "module9/buildOnce-deployMany/shared/backend.hcl"
+      TF_INPUT: "false"
+      TF_IN_AUTOMATION: "true"
+      ENVIRONMENT: "test"
+      LOCATION: "norwayeast"
+      PROJECT_NAME: "shs"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+          terraform_wrapper: false
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export ARM_* for Terraform
+        run: |
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform init \
+            -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
+            -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
+            -input=false \
+            -no-color
+
+      - name: Prepare environment tfvars
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+          else
+            TFVARS_CONTENT="$TEST_TFVARS"
+            TMPFILE=$(mktemp)
+            umask 077
+            printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Apply
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var-file="$TFVARS_FILE" \
+            -no-color
+
+      - name: Cleanup temp tfvars
+        if: always()
+        run: |
+          if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
+            rm -f "$TFVARS_FILE" || true
+          fi
+
+      - name: Terraform Output
+        working-directory: ${{ env.WORKDIR }}
+        id: output
+        run: |
+          echo "### Terraform Outputs for TEST" >> $GITHUB_STEP_SUMMARY
+          terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
+
+  deploy-prod:
+    name: Deploy to PROD
+    runs-on: ubuntu-latest
+    needs: deploy-test
+    environment: prod
+    env:
+      WORKDIR: "module9/buildOnce-deployMany/terraform"
+      BACKEND_HCL: "module9/buildOnce-deployMany/shared/backend.hcl"
+      TF_INPUT: "false"
+      TF_IN_AUTOMATION: "true"
+      ENVIRONMENT: "prod"
+      LOCATION: "norwayeast"
+      PROJECT_NAME: "shs"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.3
+          terraform_wrapper: false
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export ARM_* for Terraform
+        run: |
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+          echo "ARM_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform init \
+            -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
+            -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
+            -input=false \
+            -no-color
+
+      - name: Prepare environment tfvars
+        env:
+          REPO_TFVARS: "module9/buildOnce-deployMany/environments/${{ env.ENVIRONMENT }}.tfvars"
+          DEV_TFVARS: "${{ secrets.DEV_TFVARS }}"
+          TEST_TFVARS: "${{ secrets.TEST_TFVARS }}"
+          PROD_TFVARS: "${{ secrets.PROD_TFVARS }}"
+        run: |
+          set -euo pipefail
+          TFVARS_PATH="$REPO_TFVARS"
+          if [ -f "$TFVARS_PATH" ]; then
+            echo "Using committed var-file: $TFVARS_PATH"
+            echo "TFVARS_FILE=$TFVARS_PATH" >> $GITHUB_ENV
+          else
+            TFVARS_CONTENT="$PROD_TFVARS"
+            TMPFILE=$(mktemp)
+            umask 077
+            printf '%s' "$TFVARS_CONTENT" > "$TMPFILE"
+            echo "TFVARS_FILE=$TMPFILE" >> $GITHUB_ENV
+          fi
+
+      - name: Terraform Apply
+        working-directory: ${{ env.WORKDIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var-file="$TFVARS_FILE" \
+            -no-color
+
+      - name: Cleanup temp tfvars
+        if: always()
+        run: |
+          if [ -n "${TFVARS_FILE:-}" ] && [[ "$TFVARS_FILE" == /tmp/* ]]; then
+            rm -f "$TFVARS_FILE" || true
+          fi
+
+      - name: Terraform Output
+        working-directory: ${{ env.WORKDIR }}
+        id: output
+        run: |
+          echo "### Terraform Outputs for PROD" >> $GITHUB_STEP_SUMMARY
+          terraform output -no-color | tee -a $GITHUB_STEP_SUMMARY
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🎉 Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All environments have been successfully deployed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ DEV" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ TEST" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ PROD" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Same Terraform code deployed to all environments!**" >> $GITHUB_STEP_SUMMARY
