@@ -1,14 +1,12 @@
-# Obligatorisk Øving 2: Build Once, Deploy Many (Azure + Terraform)
+# Obligatorisk Øving 2
 
 Dette repoet inneholder løsningen for Oblig 2. Målet er å vise en enkel, sikker og repeterbar måte å deploye infrastruktur til flere miljøer med Terraform og GitHub Actions.
 
-Les denne README-en for hva som må være på plass, hvordan repoet er organisert, og hvordan du kjører ting lokalt og i CI/CD.
-
 Repository: https://github.com/SondergaardNTNU/DCST3005-workspace-folder
 
-Mappe: module9
+Mappe: `module9`
 
-Versjon: module9-v1.1.0
+Versjon: `module9-v1.1.0`
 
 ## Innholdsfortegnelse
 
@@ -76,7 +74,7 @@ tags = {
 
 Merk: i denne innleveringen ble miljø-verdiene for dev/test/prod levert som GitHub Actions secrets (`DEV_TFVARS`, `TEST_TFVARS`, `PROD_TFVARS`) når workflowene ble kjørt.
 
-## Skript
+## Skript for lokal utvikling
 
 I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper deg å bygge, deploye og rydde opp. De kan kjøres lokalt eller fra en CI/CD-pipeline for å sikre at samme kommandoer brukes hver gang.
 
@@ -108,7 +106,7 @@ I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper de
 
 Hvordan skriptene hjelper til:
 - Konsistens: Skriptene sørger for at samme init/plan/apply-kommandoer brukes lokalt og i CI/CD.
-- Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer, dette gjør det enklere å følge "build once, deploy many".
+- Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer eller feature branch, dette gjør det enklere å følge "build once, deploy many".
 - Gjenbruk i workflows: Workflowene kan kalle disse skriptene (eller samme kommandoer), for eksempel for å bygge artefakt i CI og deretter bruke `deploy.sh` i CD.
 
 Eksempel (lokalt)
@@ -129,7 +127,7 @@ Husk: hvis du bruker secrets (tfvars i GitHub Actions), sørg for at `environmen
 
 Hva som skjer i `ci.yml`:
 
-- Trigger: Når du åpner en PR mot `main` med endringer i `module9/buildOnce-deployMany/terraform/**`.
+- Trigger: Når du åpner en PR mot `main` etter å ha kjørt skriptene `build.sh` og `deploy.sh`med endringer i `module9/buildOnce-deployMany/terraform/**`.
 - Stegene:
   - Checkout og setup Terraform.
   - Logg inn i Azure via OIDC og sett `ARM_*`-variabler.
@@ -153,7 +151,6 @@ Hva som skjer i `cd.yml`:
   - `terraform apply -auto-approve tfplan`
   - Cleanup: fjern tempfiler og `tfplan`.
 
-Prod-deploy krever manuell godkjenning i GitHub.
-
+Prod-deploy krever manuell godkjenning av reviewer i GitHub.
 
 
