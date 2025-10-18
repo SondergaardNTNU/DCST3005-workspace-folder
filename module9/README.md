@@ -115,7 +115,7 @@ Eksempel lokalt (kjør i fra en `feature`-branch og ikke i `main`-branch, sørg 
 ./scripts/build.sh dev
 
 # Deploy artefakten som ble laget
-./scripts/deploy.sh dev terraform-dev-<version>.tar.gz
+./scripts/deploy.sh dev terraform-dev-<versjon>.tar.gz
 
 # Rydd opp (ADVARSEL: sletter ressurser)
 ./scripts/cleanup.sh dev
