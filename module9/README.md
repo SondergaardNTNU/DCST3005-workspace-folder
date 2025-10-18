@@ -15,12 +15,8 @@ Versjon: module9-v1.1.0
 - [Hva må være på plass](#hva-må-være-på-plass)
 - [Mappestruktur](#mappestruktur)
 - [Hvordan bruke secrets og tfvars](#hvordan-bruke-secrets-og-tfvars)
-- [Lokal utvikling](#lokal-utvikling)
 - [CI (Pull Request)](#ci-pull-request)
 - [CD (merge til main)](#cd-merge-til-main)
-- [Vanlige feil og rask fikse](#vanlige-feil-og-rask-fikse)
-- [Sjekk lokalt (kort eksempel)](#sjekk-lokalt-kort-eksempel)
-- [Hva leveres](#hva-leveres)
 
 ---
 
@@ -54,7 +50,7 @@ Kort forklaring:
 
 Merknad om workflow-lokasjon
 - Workflow-filene som ligger i denne mappen (`module9/workflows/ci.yml` og `module9/workflows/cd.yml`) er kopier for innlevering/oversikt. De originale workflow-filene ligger i repoets rot under `.github/workflows/` (dvs. `DCST3005-workspace-folder/.github/workflows/`).
-- På grunn av dette kan enkelte relative baner som brukes i workflow-filene (for eksempel `-backend-config="../shared/backend.hcl"` eller sti til `module9/...`) trenge justering hvis du flytter eller kjører workflow-filene fra en annen plassering. Sjekk og oppdater paths i workflowene dersom du får feilmeldinger om at filer ikke finnes.
+- På grunn av dette kan enkelte relative stier som brukes i workflow-filene (for eksempel `-backend-config="../shared/backend.hcl"` eller sti til `module9/...`) trenge justering hvis du flytter eller kjører workflow-filene fra en annen plassering. Sjekk og oppdater paths i workflowene dersom du får feilmeldinger om at filer ikke finnes.
 
 ## Hvordan bruke secrets og tfvars
 
@@ -79,21 +75,6 @@ tags = {
 ```
 
 Merk: i denne innleveringen ble miljø-verdiene for dev/test/prod levert som GitHub Actions secrets (`DEV_TFVARS`, `TEST_TFVARS`, `PROD_TFVARS`) når workflowene ble kjørt.
-
-## Lokal utvikling
-
-1. Lag en kort feature branch og jobb lokalt.
-2. Kjør disse kommandoene før du pusher:
-
-```bash
-cd module9/buildOnce-deployMany/terraform
-terraform fmt -check
-terraform init -backend=false
-terraform validate
-terraform plan -var-file=../environments/dev.tfvars
-```
-
-3. Push, lag PR og la CI kjøre.
 
 ## Skript
 
@@ -127,7 +108,7 @@ I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper de
 
 Hvordan skriptene hjelper til:
 - Konsistens: Skriptene sørger for at samme init/plan/apply-kommandoer brukes lokalt og i CI/CD.
-- Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer — dette gjør det enklere å følge "build once, deploy many".
+- Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer, dette gjør det enklere å følge "build once, deploy many".
 - Gjenbruk i workflows: Workflowene kan kalle disse skriptene (eller samme kommandoer), for eksempel for å bygge artefakt i CI og deretter bruke `deploy.sh` i CD.
 
 Eksempel (lokalt)
@@ -173,32 +154,6 @@ Hva som skjer i `cd.yml`:
   - Cleanup: fjern tempfiler og `tfplan`.
 
 Prod-deploy krever manuell godkjenning i GitHub.
-
-## Vanlige feil
-
-- "Variables not allowed" eller "required variable not set": som regel fordi tfvars mangler anførselstegn. Sjekk at secret-verdien er korrekt formatert.
-- Workflow bruker en committed `environments/<env>.tfvars`: fjern eller oppdater filen hvis du vil bruke secrets.
-
-## Sjekk lokalt (kort eksempel)
-
-```bash
-cat > /tmp/dev.tfvars <<'TF'
-prefix = "shs"
-env = "dev"
-location = "norwayeast"
-storage_tier = "Standard"
-replication = "LRS"
-tags = {
-  env     = "dev"
-  owner   = "Sondre H. Søndergaard"
-  project = "DCST3005"
-}
-TF
-
-cd module9/buildOnce-deployMany/terraform
-terraform init -backend=false
-terraform plan -var-file=/tmp/dev.tfvars
-```
 
 
 
