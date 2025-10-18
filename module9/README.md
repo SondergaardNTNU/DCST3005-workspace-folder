@@ -76,7 +76,7 @@ Merk: i denne innleveringen ble miljø-verdiene for dev/test/prod levert som Git
 
 ## Skript for lokal utvikling
 
-I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper deg å bygge, deploye og rydde opp. De kan kjøres lokalt eller fra en CI/CD-pipeline for å sikre at samme kommandoer brukes hver gang.
+I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper deg å bygge, deploye og rydde opp. De kan kjøres lokalt eller fra CI/CD-pipeline for å sikre at samme kommandoer brukes hver gang.
 
 - build.sh
   - Formål: Validerer Terraform, initialiserer backend for et gitt miljø, og pakker repo-delen til en artifact (.tar.gz).
@@ -106,10 +106,10 @@ I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper de
 
 Hvordan skriptene hjelper til:
 - Konsistens: Skriptene sørger for at samme init/plan/apply-kommandoer brukes lokalt og i CI/CD.
-- Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer eller feature branch, dette gjør det enklere å følge "build once, deploy many".
+- Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer eller feature brancher, dette gjør det enklere å følge "build once, deploy many".
 - Gjenbruk i workflows: Workflowene kan kalle disse skriptene (eller samme kommandoer), for eksempel for å bygge artefakt i CI og deretter bruke `deploy.sh` i CD.
 
-Eksempel (lokalt)
+Eksempel lokalt (kjør i fra en `feature`-branch og ikke i `main`-branch, sørg også for å tagge slik at det er sporbart i Git hvis det skulle være behov for rollback senere.)
 ```bash
 # Bygg artefakt for dev
 ./scripts/build.sh dev
@@ -127,7 +127,7 @@ Husk: hvis du bruker secrets (tfvars i GitHub Actions), sørg for at `environmen
 
 Hva som skjer i `ci.yml`:
 
-- Trigger: Når du åpner en PR mot `main` etter å ha kjørt skriptene `build.sh` og `deploy.sh`med endringer i `module9/buildOnce-deployMany/terraform/**`.
+- Trigger: Når du åpner en PR fra en `feature`-branch mot `main` etter å ha kjørt skriptene `build.sh` og `deploy.sh`med endringer i `module9/buildOnce-deployMany/terraform/**`.
 - Stegene:
   - Checkout og setup Terraform.
   - Logg inn i Azure via OIDC og sett `ARM_*`-variabler.
@@ -153,4 +153,82 @@ Hva som skjer i `cd.yml`:
 
 Prod-deploy krever manuell godkjenning av reviewer i GitHub.
 
+## Rollback 
 
+1) Inspiser den tidligere versjonen (commit eller tag)
+
+```bash
+git show <commit-eller-tag>
+```
+Hva det gjør: Bruk dette for å bekrefte hvilken commit/tag du vil tilbakeføre til.
+
+2) Opprett en hotfix-branch for rollback
+
+```bash
+git checkout -b hotfix/rollback-to-<tidligere-versjon>
+```
+Hva det gjør: Denne branchen brukes til å lage revert-PR som kan reviewes.
+
+3) Liste eksisterende tags (valgfritt)
+
+```bash
+git tag -l
+```
+Hva det gjør: viser tilgjengelige release-tags slik at du enkelt kan peke på en tag som representerer en kjent stabil versjon.
+
+4) Plukk ut terraform-kode fra en tidligere tag/commit
+
+```bash
+git checkout <tidligere-commit-eller-tag> -- terraform
+```
+Hva det gjør: henter `terraform/`-mappen fra en tidligere commit til din nåværende branch. 
+
+5) Se status og endringer som er staged
+
+```bash
+git status
+git diff --staged
+```
+Hva det gjør: viser hvilke filer som endres og hva som blir commit'et. Bruk dette til å verifisere at kun forventede endringer er med i rollback.
+
+6) Commit og push hotfix-branch
+
+```bash
+git commit -m "Rollback: revert til <tidligere-versjon>"   # skriv en klar melding
+git push origin hotfix/rollback-to-<tidligere-versjon>
+```
+Hva det gjør: oppretter commit lokalt med de valgte endringene og sender branch til remote slik at du kan opprette en PR.
+
+Hva CI gjør når du åpner en rollback-PR
+- Når du åpner PR mot `main` vil CI-pipelinen kjøre automatisk: checkout, terraform fmt, init, validate og plan for alle miljøer. 
+- Sjekk PR-planene nøye: de viser hvilke endringer Terraform vil gjøre i hvert miljø. Dette er din bekreftelse på at rollback oppfører seg som forventet før merge med `main`.
+
+7) Merge PR for rollback
+
+Når PR er reviewet og merget til `main`, vil CD-pipelinen trigges:
+- CD kjører i rekkefølge: deploy til DEV → TEST → PROD. Hver jobb gjør `terraform init` mot sitt backend, kjører `terraform plan -var-file=... -out=tfplan`, viser planen (`terraform show`) og så `terraform apply tfplan`.
+- CD vil stoppe før prod og vente på manuell godkjenning.
+
+8) Tagging og opprydding
+
+Etter en vellykket rollback kan du lage en ny release-tag som dokumenterer rollbacken:
+
+```bash
+git checkout main
+git pull origin main
+git tag -a module9-v<nyversjon> -m "Rollback to <tidligere-versjon>: <forklaring>"
+git push origin module9-v<nyversjon>
+```
+Hva det gjør: oppretter en annotert tag med melding og pusher den til remote slik at historikken er tydelig for senere revisjon.
+
+9) Rydd opp lokalt og i branches 
+
+```bash
+git fetch --prune
+git branch -a
+```
+Hva det gjør: fjerner refs som ikke finnes på remote lenger og viser alle branches, slik at du har oversikt etter rollback.
+
+Viktige advarsler og tips
+- Før du ruller tilbake, kjør `terraform plan` og kontroller planen nøye i CI før du merger/lar CD gjøre apply.
+- All rollback bør gå via PR så endringen blir reviewet og logget i GitHub, dette gjør handlingen sporbar.
