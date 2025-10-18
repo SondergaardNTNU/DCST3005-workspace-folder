@@ -1,10 +1,12 @@
 # Obligatorisk Øving 2: Build Once, Deploy Many (Azure + Terraform)
 
-Dette repoet inneholder løsningen for Obligatorisk øving 2. Målet er å vise en enkel, sikker og repeterbar måte å deploye infrastruktur til flere miljøer med Terraform og GitHub Actions.
+Dette repoet inneholder løsningen for Oblig 2. Målet er å vise en enkel, sikker og repeterbar måte å deploye infrastruktur til flere miljøer med Terraform og GitHub Actions.
 
 Les denne README-en for hva som må være på plass, hvordan repoet er organisert, og hvordan du kjører ting lokalt og i CI/CD.
 
 Repository: https://github.com/SondergaardNTNU/DCST3005-workspace-folder
+Mappe: module9
+Versjon: module9-v1.1.0
 
 ## Innholdsfortegnelse
 
@@ -33,7 +35,8 @@ Anbefalt: Beskytt `prod`-miljøet i GitHub (kreve godkjenning før deploy).
 ```
 module9/
   buildOnce-deployMany/
-    environments/        # Per-miljø .tfvars (kan git-ignore'es)
+    backend-configs/     # Per-miljø .tfstate 
+    environments/        # Per-miljø .tfvars (bruker github secrets i mitt oppsett)
       dev.tfvars
       test.tfvars
       prod.tfvars
@@ -47,7 +50,7 @@ Kort forklaring:
 - `environments/`: inneholder miljøspesifikke verdier. Hvis disse er sensitive, legg dem i GitHub Secrets i stedet for å committe.
 - `terraform/`: koden som definerer Resource Group og Storage Account (minimumskrav for øvingen).
 
-Merk om workflow-lokasjon
+Merknad om workflow-lokasjon
 - Workflow-filene som ligger i denne mappen (`module9/workflows/ci.yml` og `module9/workflows/cd.yml`) er kopier for innlevering/oversikt. De originale workflow-filene ligger i repoets rot under `.github/workflows/` (dvs. `DCST3005-workspace-folder/.github/workflows/`).
 - På grunn av dette kan enkelte relative baner som brukes i workflow-filene (for eksempel `-backend-config="../shared/backend.hcl"` eller sti til `module9/...`) trenge justering hvis du flytter eller kjører workflow-filene fra en annen plassering. Sjekk og oppdater paths i workflowene dersom du får feilmeldinger om at filer ikke finnes.
 
@@ -73,8 +76,6 @@ tags = {
 }
 ```
 
-Bruk Key Vault for passord eller andre sensitive hemmeligheter.
-
 Merk: i denne innleveringen ble miljø-verdiene for dev/test/prod levert som GitHub Actions secrets (`DEV_TFVARS`, `TEST_TFVARS`, `PROD_TFVARS`) når workflowene ble kjørt.
 
 ## Lokal utvikling
@@ -98,7 +99,7 @@ I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper de
 
 - build.sh
   - Formål: Validerer Terraform, initialiserer backend for et gitt miljø, og pakker repo-delen til en artifact (.tar.gz).
-  - Bruk: `./build.sh <environment>` hvor `<environment>` er `dev`, `test` eller `prod`.
+  - Bruk: `./scripts/build.sh <environment>` hvor `<environment>` er `dev`, `test` eller `prod`.
   - Hva den gjør:
     1. Kjører `terraform fmt` og `terraform validate` i `terraform/`.
     2. Kaller `terraform init -reconfigure` med backend-config for miljøet (fra `backend-configs/backend-<env>.tfvars`).
@@ -107,7 +108,7 @@ I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper de
 
 - deploy.sh
   - Formål: Packer ut en tidligere laget artifact og kjører `terraform apply` for et gitt miljø.
-  - Bruk: `./deploy.sh <environment> <artifact>`
+  - Bruk: `./scripts/deploy.sh <environment> <artifact>`
   - Hva den gjør:
     1. Sjekker at `az` CLI er logget inn og henter subscription-id (`az account show`).
     2. Unpacker artifact og initialiserer Terraform med riktig backend-config (`backend-configs/backend-<env>.tfvars`).
@@ -122,7 +123,7 @@ I `module9/buildOnce-deployMany/scripts/` finnes tre enkle skript som hjelper de
     2. Ber om bekreftelse (`Type 'yes' to continue`) før den kjører `terraform destroy -var-file=../environments/<env>.tfvars -auto-approve`.
   - Advarsel: Dette sletter faktiske ressurser. Kjør kun hvis du er sikker på miljøet og subscription.
 
-Hvordan skriptene hjelper til med oppgaven
+Hvordan skriptene hjelper til:
 - Konsistens: Skriptene sørger for at samme init/plan/apply-kommandoer brukes lokalt og i CI/CD.
 - Build once: `build.sh` lager en artefakt som kan arkiveres og distribueres til forskjellige miljøer — dette gjør det enklere å følge "build once, deploy many".
 - Gjenbruk i workflows: Workflowene kan kalle disse skriptene (eller samme kommandoer), for eksempel for å bygge artefakt i CI og deretter bruke `deploy.sh` i CD.
@@ -130,13 +131,13 @@ Hvordan skriptene hjelper til med oppgaven
 Eksempel (lokalt)
 ```bash
 # Bygg artefakt for dev
-./build.sh dev
+./scripts/build.sh dev
 
 # Deploy artefakten som ble laget
-./deploy.sh dev terraform-dev-<version>.tar.gz
+./scripts/deploy.sh dev terraform-dev-<version>.tar.gz
 
 # Rydd opp (ADVARSEL: sletter ressurser)
-./cleanup.sh dev
+./scripts/cleanup.sh dev
 ```
 
 Husk: hvis du bruker secrets (tfvars i GitHub Actions), sørg for at `environments/<env>.tfvars` i artefakten inneholder riktige (og sikkert formaterte) verdier, eller at workflowen din leverer tfvars fra Actions secrets.
@@ -150,7 +151,7 @@ Hva som skjer i `ci.yml`:
   - Checkout og setup Terraform.
   - Logg inn i Azure via OIDC og sett `ARM_*`-variabler.
   - `terraform fmt -check`, `terraform init`, `terraform validate`.
-  - Kjøre `terraform plan` for hver miljø (dev, test, prod). For hvert miljø lages en TFVARS-fil ved behov (committed fil eller secret → tempfile).
+  - Kjøre `terraform plan` for hvert miljø (dev, test, prod). For hvert miljø lages en TFVARS-fil ved behov (committed fil eller secret → tempfile).
   - Plan-output postes som kommentar på PR så reviewers ser hva som vil endres.
 
 Formålet er å oppdage feil tidlig og gi reviewers tydelig info om endringer.
@@ -169,9 +170,9 @@ Hva som skjer i `cd.yml`:
   - `terraform apply -auto-approve tfplan`
   - Cleanup: fjern tempfiler og `tfplan`.
 
-Prod-deploy bør normalt kreve manuell godkjenning i GitHub Environment.
+Prod-deploy krever manuell godkjenning i GitHub.
 
-## Vanlige feil og rask fikse
+## Vanlige feil
 
 - "Variables not allowed" eller "required variable not set": som regel fordi tfvars mangler anførselstegn. Sjekk at secret-verdien er korrekt formatert.
 - Workflow bruker en committed `environments/<env>.tfvars`: fjern eller oppdater filen hvis du vil bruke secrets.
@@ -196,14 +197,6 @@ cd module9/buildOnce-deployMany/terraform
 terraform init -backend=false
 terraform plan -var-file=/tmp/dev.tfvars
 ```
-
-## Hva leveres
-
-- Terraform-kode i `module9/buildOnce-deployMany/terraform`
-- Per-miljø `.tfvars` eller dokumentasjon om at dere bruker secrets
-- Workflows i `module9/workflows/` (kopi av DCST3005-workspace-folder/.github/workflows for innlevering)
-- Skript i `module9/buildOnce-deployMany/scripts/`
-- Denne README-en
 
 
 

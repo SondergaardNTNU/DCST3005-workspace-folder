@@ -1,0 +1,13 @@
+# er i .gitignore i mitt repo, men ligger her for oversikt
+# ligger i github secrets i mitt oppsett, som DEV_TFVARS
+prefix       = "shs"
+env          = "dev"
+location     = "norwayeast"
+storage_tier = "Standard"
+replication  = "LRS"
+
+tags = {
+  env     = "dev"
+  owner   = "Sondre"
+  project = "DCST3005"
+}
