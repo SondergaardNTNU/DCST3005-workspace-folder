@@ -14,4 +14,3 @@ resource "azurerm_storage_account" "main" {
   tags                     = var.tags
 }
 # comment for testing git workflows deployments 1
-# comment for testing git rollbacks deployments --- IGNORE ---
