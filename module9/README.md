@@ -15,7 +15,7 @@ Versjon: `module9-v1.1.0`
 - [Hvordan bruke secrets og tfvars](#hvordan-bruke-secrets-og-tfvars)
 - [CI (Pull Request)](#ci-pull-request)
 - [CD (merge til main)](#cd-merge-til-main)
-- [Rollback] (#rollback)
+- [Rollback](#rollback)
 
 ---
 
