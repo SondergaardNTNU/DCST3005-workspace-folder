@@ -5,7 +5,9 @@ Dette repoet inneholder løsningen for Oblig 2. Målet er å vise en enkel, sikk
 Les denne README-en for hva som må være på plass, hvordan repoet er organisert, og hvordan du kjører ting lokalt og i CI/CD.
 
 Repository: https://github.com/SondergaardNTNU/DCST3005-workspace-folder
+
 Mappe: module9
+
 Versjon: module9-v1.1.0
 
 ## Innholdsfortegnelse
