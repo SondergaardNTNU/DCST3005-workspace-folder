@@ -6,7 +6,7 @@ variable "subscription_id" {
 variable "environment" {
   type        = string
   description = "Navn på miljøet (f.eks. dev, test, prod)."
-  
+
 }
 
 
@@ -19,7 +19,7 @@ variable "location" {
   type        = string
   description = "Azure-region for ressursgruppen."
   default     = "Norway East"
-  
+
 }
 
 variable "tags" {

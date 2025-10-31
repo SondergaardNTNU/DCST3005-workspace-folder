@@ -5,6 +5,6 @@ locals {
     module      = "Network"
     owner       = "Sondre H. Søndergaard"
     billing     = "DCST3005"
-    purporse     = "Networking Infrastructure"
+    purporse    = "Networking Infrastructure"
   }, var.tags)
 }

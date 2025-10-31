@@ -38,27 +38,27 @@ variable "sku_size" {
 }
 
 variable "kind" {
-    type        = string
-    description = "The kind of App Service Plan (e.g., Windows, Linux)."
-    default     = "Linux"
-    }
+  type        = string
+  description = "The kind of App Service Plan (e.g., Windows, Linux)."
+  default     = "Linux"
+}
 
 variable "linux_fx_version" {
-    type        = string
-    description = "The Linux FX version for the App Service (e.g., DOCKER|<image>)."
-    default     = "DOCKER|mcr.microsoft.com/azure-app-service/samples/aspnetcore-helloworld:latest"
-    }
+  type        = string
+  description = "The Linux FX version for the App Service (e.g., DOCKER|<image>)."
+  default     = "DOCKER|mcr.microsoft.com/azure-app-service/samples/aspnetcore-helloworld:latest"
+}
 
 variable "scm_type" {
-    type        = string
-    description = "The source control management type (e.g., None, LocalGit, GitHub)."
-    default     = "LocalGit"
-    }
+  type        = string
+  description = "The source control management type (e.g., None, LocalGit, GitHub)."
+  default     = "LocalGit"
+}
 
 variable "SOME_KEY" {
-    type        = string
-    description = "Example app setting key."
-    default     = "some-value"
+  type        = string
+  description = "Example app setting key."
+  default     = "some-value"
 }
 
 

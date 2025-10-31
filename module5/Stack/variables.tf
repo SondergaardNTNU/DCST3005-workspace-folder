@@ -63,14 +63,14 @@ variable "subnet_cidr" {
 
 
 variable "linux_fx_version" {
-    type        = string
-    description = "The Linux FX version for the App Service (e.g., DOCKER|<image>)."
-    default     = "DOCKER|mcr.microsoft.com/azure-app-service/samples/aspnetcore-helloworld:latest"
-    }
+  type        = string
+  description = "The Linux FX version for the App Service (e.g., DOCKER|<image>)."
+  default     = "DOCKER|mcr.microsoft.com/azure-app-service/samples/aspnetcore-helloworld:latest"
+}
 
 variable "kind" {
-    type        = string
-    description = "The kind of App Service Plan (e.g., Windows, Linux)."
-    default     = "Linux"
-  
+  type        = string
+  description = "The kind of App Service Plan (e.g., Windows, Linux)."
+  default     = "Linux"
+
 }

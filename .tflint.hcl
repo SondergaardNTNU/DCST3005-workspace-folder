@@ -14,3 +14,7 @@ rule "terraform_unused_declarations" {
 # rule "azurerm_storage_account_invalid_name" {
 #   enabled = false
 # }
+
+rule "terraform_unused_declarations" {
+  enabled = false
+}

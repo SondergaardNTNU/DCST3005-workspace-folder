@@ -5,6 +5,6 @@ locals {
     module      = "AppService"
     owner       = "Sondre H. Søndergaard"
     billing     = "DCST3005"
-    purporse     = "Web Application Hosting"
+    purporse    = "Web Application Hosting"
   }, var.tags)
 }

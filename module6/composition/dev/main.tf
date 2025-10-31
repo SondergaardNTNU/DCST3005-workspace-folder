@@ -26,11 +26,11 @@ module "network" {
 }
 
 module "compute" {
-  source              = "../../modules/compute"
-  name_prefix         = var.name_prefix
-  location            = var.location
-  subnet_id           = module.network.subnet_id
-  vm_size             = var.vm_size
-  admin_username      = var.admin_username
-  admin_ssh_public_key= var.admin_ssh_public_key
+  source               = "../../modules/compute"
+  name_prefix          = var.name_prefix
+  location             = var.location
+  subnet_id            = module.network.subnet_id
+  vm_size              = var.vm_size
+  admin_username       = var.admin_username
+  admin_ssh_public_key = var.admin_ssh_public_key
 }
