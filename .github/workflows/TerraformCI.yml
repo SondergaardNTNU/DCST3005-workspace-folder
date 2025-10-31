@@ -69,6 +69,21 @@ jobs:
         id: validate
         run: terraform validate -no-color
 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        run: |
+          tflint --init
+          tflint --chdir "${{ env.WORKDIR }}/terraform"
+
+      - name: Install Checkov
+        run: python3 -m pip install --upgrade pip && pip install checkov
+
+      - name: Run Checkov
+        run: checkov -d "${{ env.WORKDIR }}/terraform" --framework terraform --quiet
+       
+
   plan-all-environments:
     name: Plan - ${{ matrix.environment }}
     runs-on: ubuntu-latest

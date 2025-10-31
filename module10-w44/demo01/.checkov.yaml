@@ -1,0 +1,16 @@
+# .checkov.yaml - Minimal konfigurasjon for å komme i gang
+
+# checkov -d . --config-file .checkov.yaml 
+
+framework:
+  - terraform
+
+output: cli
+
+compact: true
+
+quiet: false
+
+skip-check:
+  - CKV_AZURE_33
+  - CKV_AZURE_206

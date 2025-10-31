@@ -6,6 +6,8 @@ README-shs.md
 #ignore environment variables file
 env
 
+backend.hcl
+
 # tfplan files
 test-tfplan
 prod-tfplan
@@ -45,3 +47,35 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Terraform
+**/.terraform/*
+**/.terraform.lock.hcl
+*.tfplan
+
+# Sensitive files
+shared/backend.hcl
+**/terraform.tfvars
+**/secrets.tfvars
+**/*.auto.tfvars
+
+# Key files
+*.pem
+*.key
+*.p12
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+test-results/
+*.test
+coverage/

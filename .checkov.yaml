@@ -1,0 +1,7 @@
+framework: terraform
+quiet: true
+skip-download: false
+
+# Hvit-/svartelist enkelte policyer (ved behov):
+# skip-check:
+#   - CKV_AZURE_206  # Eksempel – dokumentér hvorfor dere skipper
