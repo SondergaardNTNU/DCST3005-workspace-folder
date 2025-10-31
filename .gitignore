@@ -3,6 +3,9 @@ README-shs.md
 # Local .terraform directories
 .terraform/
 
+#ignore environment variables file
+env
+
 # tfplan files
 test-tfplan
 prod-tfplan
