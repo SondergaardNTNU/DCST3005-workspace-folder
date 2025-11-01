@@ -18,4 +18,4 @@ resource "azurerm_storage_account" "main" {
 
 }
 # comment for testing git workflows deployments 1
-# comment for lint testing and checkov again
+# comment for lint testing and checkov 
