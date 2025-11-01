@@ -28,11 +28,16 @@ jobs:
   validate-live:
     name: Validate live environment — tflint & checkov
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev, test, prod]
+      fail-fast: false
     concurrency:
       group: live-tests-${{ github.ref }}
       cancel-in-progress: true
     env:
-      RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
+      # RESOURCE_GROUP is computed per-matrix job below
+      RESOURCE_GROUP: rg-${{ matrix.environment }}-shs
       STORAGE_ACCOUNT: ${{ github.event.inputs.storage_account }}
       CONTAINER: ${{ github.event.inputs.container }}
       WORKDIR: ${{ github.event.inputs.workdir }}
@@ -41,12 +46,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to Azure
+      - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: false
+          environment: azurecloud
+          allow-no-subscriptions: false
+          audience: api://AzureADTokenExchange
+          auth-type: SERVICE_PRINCIPAL
+        env:
+          RESOURCE_GROUP: rg-tfstate-shs
+          STORAGE_ACCOUNT: sttfstateshs
+          CONTAINER: tfstate
+          WORKDIR: module9/buildOnce-deployMany/terraform
 
       - name: Verify storage account exists
         run: |
