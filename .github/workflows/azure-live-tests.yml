@@ -33,7 +33,7 @@ jobs:
         environment: [dev, test, prod]
       fail-fast: false
     concurrency:
-      group: live-tests-${{ github.ref }}
+      group: live-tests-${{ github.ref }}-${{ matrix.environment }}
       cancel-in-progress: true
     env:
       # RESOURCE_GROUP is computed per-matrix job below
