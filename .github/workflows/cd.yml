@@ -54,7 +54,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
-            -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
+            -backend-config="key=w44/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
 
@@ -147,7 +147,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
-            -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
+            -backend-config="key=w44/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
 
@@ -235,7 +235,7 @@ jobs:
         run: |
           terraform init \
             -backend-config="${{ github.workspace }}/${{ env.BACKEND_HCL }}" \
-            -backend-config="key=oblig2/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
+            -backend-config="key=w44/${{ env.ENVIRONMENT }}/${{ env.ENVIRONMENT }}.tfstate" \
             -input=false \
             -no-color
 
