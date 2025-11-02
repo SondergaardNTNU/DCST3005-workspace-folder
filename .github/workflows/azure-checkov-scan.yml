@@ -1,4 +1,4 @@
-name: Terraform — tflint and checkov (from storage account)
+name: Terraform — checkov (from storage account)
 
 on:
   workflow_dispatch:
