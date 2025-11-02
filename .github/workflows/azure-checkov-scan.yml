@@ -122,10 +122,16 @@ jobs:
 
             for s in "${tfstate_files[@]}"; do
               echo "Converting $s to JSON (using provider plugins from $TMP_INIT_DIR)"
+              # compute absolute path to state file so terraform (run from TMP_INIT_DIR) can read it
+              s_abs="$(cd "$(dirname "$s")" && pwd)/$(basename "$s")"
+              echo "State absolute path: $s_abs"
+              # ensure output directory exists
+              out_json="${s_abs}.json"
+              mkdir -p "$(dirname "$out_json")"
               # Run terraform show from the temp init dir so provider plugins are available
-              terraform -chdir="$TMP_INIT_DIR" show -json "$s" > "${s}.json" || { echo "terraform show failed for $s"; continue; }
-              echo "Running Checkov on ${s}.json"
-              checkov -f "${s}.json" --framework terraform || true
+              terraform -chdir="$TMP_INIT_DIR" show -json "$s_abs" > "$out_json" || { echo "terraform show failed for $s_abs"; continue; }
+              echo "Running Checkov on $out_json"
+              checkov -f "$out_json" --framework terraform || true
             done
             # cleanup
             rm -rf "$TMP_INIT_DIR" || true
