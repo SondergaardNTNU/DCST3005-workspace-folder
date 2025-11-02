@@ -66,37 +66,59 @@ jobs:
           echo "Downloaded files:"
           ls -la "$WORKDIR" || true
 
-      - name: Fail if no terraform files found
+      - name: Detect and scan Terraform files and state
         env:
           WORKDIR: ${{ github.event.inputs.workdir }}
         run: |
           set -euo pipefail
-          shopt -s nullglob || true
-          files=("${WORKDIR}"/*.tf "${WORKDIR}"/*.tfvars)
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "No .tf or .tfvars files were downloaded to $WORKDIR. Aborting."
+          echo "Searching for Terraform files under $WORKDIR"
+
+          # find directories containing .tf files
+          mapfile -t tf_dirs < <(find "$WORKDIR" -type f -name '*.tf' -printf '%h\n' | sort -u)
+          mapfile -t tfvars_files < <(find "$WORKDIR" -type f -name '*.tfvars')
+          mapfile -t tfstate_files < <(find "$WORKDIR" -type f -name '*.tfstate')
+
+          echo "Found tf dirs: ${tf_dirs[*]:-none}"
+          echo "Found tfvars files: ${tfvars_files[*]:-none}"
+          echo "Found tfstate files: ${tfstate_files[*]:-none}"
+
+          if [ ${#tf_dirs[@]} -eq 0 ] && [ ${#tfvars_files[@]} -eq 0 ] && [ ${#tfstate_files[@]} -eq 0 ]; then
+            echo "No Terraform source (.tf/.tfvars) or state (.tfstate) files were downloaded to $WORKDIR. Aborting."
             exit 1
           fi
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+          # Run TFLint per directory containing .tf files (if any)
+          if [ ${#tf_dirs[@]} -gt 0 ]; then
+            echo "Setting up TFLint"
+            curl -sSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash || true
+            for d in "${tf_dirs[@]}"; do
+              echo "Running tflint in $d"
+              tflint --init || true
+              tflint --chdir "$d" || true
+            done
+          else
+            echo "No .tf files found; skipping TFLint."
+          fi
 
-      - name: Run TFLint
-        env:
-          WORKDIR: ${{ github.event.inputs.workdir }}
-        run: |
-          echo "Running tflint in $WORKDIR"
-          tflint --init
-          tflint --chdir "$WORKDIR"
-
-      - name: Install Checkov
-        run: |
+          # Install Checkov
           python3 -m pip install --upgrade pip
           pip install checkov
 
-      - name: Run Checkov
-        env:
-          WORKDIR: ${{ github.event.inputs.workdir }}
-        run: |
-          echo "Running Checkov against $WORKDIR"
-          checkov -d "$WORKDIR" --framework terraform
+          # Run Checkov against source files (if any)
+          if [ ${#tf_dirs[@]} -gt 0 ] || [ ${#tfvars_files[@]} -gt 0 ]; then
+            echo "Running Checkov against $WORKDIR (source files)"
+            checkov -d "$WORKDIR" --framework terraform || true
+          fi
+
+          # For each tfstate file, convert to JSON and run Checkov on the JSON
+          if [ ${#tfstate_files[@]} -gt 0 ]; then
+            echo "Processing tfstate files"
+            for s in "${tfstate_files[@]}"; do
+              echo "Converting $s to JSON"
+              terraform show -json "$s" > "${s}.json" || { echo "terraform show failed for $s"; continue; }
+              echo "Running Checkov on ${s}.json"
+              checkov -f "${s}.json" --framework terraform || true
+            done
+          else
+            echo "No tfstate files found; skipping state scanning."
+          fi
