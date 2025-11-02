@@ -110,15 +110,25 @@ jobs:
             checkov -d "$WORKDIR" --framework terraform || true
           fi
 
-          # For each tfstate file, convert to JSON and run Checkov on the JSON
+          # For .tfstate files we need provider schemas available. Initialize a temporary Terraform dir
           if [ ${#tfstate_files[@]} -gt 0 ]; then
             echo "Processing tfstate files"
+            TMP_INIT_DIR="$(mktemp -d)"
+            echo "Preparing temporary init dir: $TMP_INIT_DIR"
+            # write providers.tf using printf to avoid YAML heredoc parsing issues
+            printf 'terraform {\n  required_providers {\n    azurerm = {\n      source  = "hashicorp/azurerm"\n      version = "= 4.43.0"\n    }\n  }\n}\n\nprovider "azurerm" {}\n' > "$TMP_INIT_DIR/providers.tf"
+            # Initialize to download provider plugins into the temp dir
+            terraform -chdir="$TMP_INIT_DIR" init -input=false -no-color || echo "terraform init in $TMP_INIT_DIR failed"
+
             for s in "${tfstate_files[@]}"; do
-              echo "Converting $s to JSON"
-              terraform show -json "$s" > "${s}.json" || { echo "terraform show failed for $s"; continue; }
+              echo "Converting $s to JSON (using provider plugins from $TMP_INIT_DIR)"
+              # Run terraform show from the temp init dir so provider plugins are available
+              terraform -chdir="$TMP_INIT_DIR" show -json "$s" > "${s}.json" || { echo "terraform show failed for $s"; continue; }
               echo "Running Checkov on ${s}.json"
               checkov -f "${s}.json" --framework terraform || true
             done
+            # cleanup
+            rm -rf "$TMP_INIT_DIR" || true
           else
             echo "No tfstate files found; skipping state scanning."
           fi
