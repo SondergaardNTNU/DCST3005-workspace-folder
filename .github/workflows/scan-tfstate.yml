@@ -1,0 +1,91 @@
+name: Scan Terraform state (Checkov)
+
+on:
+  workflow_dispatch:
+    inputs:
+      storage_account:
+        description: 'Storage account name'
+        required: false
+        default: 'sttfstateshs'
+      container:
+        description: 'Blob container name'
+        required: false
+        default: 'tfstate'
+      prefix:
+        description: 'Optional blob prefix to limit downloads (eg: w44/)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  scan-tfstate:
+    runs-on: ubuntu-latest
+    name: Download and scan .tfstate files
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.x
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Prepare download folder
+        env:
+          STORAGE_ACCOUNT: ${{ github.event.inputs.storage_account }}
+          CONTAINER:       ${{ github.event.inputs.container }}
+          PREFIX:          ${{ github.event.inputs.prefix }}
+        run: |
+          set -euo pipefail
+          TMPDIR="${RUNNER_TEMP:-/tmp}/tfstate-download"
+          rm -rf "$TMPDIR"
+          mkdir -p "$TMPDIR"
+          echo "Will download blobs from $STORAGE_ACCOUNT/$CONTAINER with prefix '$PREFIX' to $TMPDIR"
+          if [ -z "$PREFIX" ]; then
+            az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$TMPDIR" --pattern "*.tfstate" --auth-mode login
+          else
+            # download blobs under prefix by listing and downloading individually
+            mapfile -t blobs < <(az storage blob list --account-name "$STORAGE_ACCOUNT" --container-name "$CONTAINER" --prefix "$PREFIX" --query "[].name" -o tsv)
+            for b in "${blobs[@]}"; do
+              if [[ "$b" == *.tfstate ]]; then
+                echo "Downloading $b"
+                az storage blob download --account-name "$STORAGE_ACCOUNT" --container-name "$CONTAINER" --name "$b" --file "$TMPDIR/$(basename "$b")" --auth-mode login
+              fi
+            done
+          fi
+          echo "Downloaded files:"; ls -la "$TMPDIR" || true
+          echo "::set-output name=tmpdir::$TMPDIR"
+
+      - name: Install Checkov
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install checkov
+
+      - name: Scan tfstate files with Checkov
+        env:
+          TMPDIR: ${{ steps.prepare_download_folder.outputs.tmpdir }}
+        run: |
+          set -euo pipefail
+          cd "$TMPDIR"
+          shopt -s nullglob || true
+          files=( *.tfstate )
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .tfstate files found in $TMPDIR"
+            exit 0
+          fi
+          for s in "${files[@]}"; do
+            echo "Converting $s to JSON"
+            terraform show -json "$s" > "$s.json" || { echo "terraform show failed for $s"; continue; }
+            echo "Running Checkov on $s.json"
+            checkov -f "$s.json" --framework terraform || true
+          done
