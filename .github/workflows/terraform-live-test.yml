@@ -1,0 +1,102 @@
+name: Terraform — tflint and checkov (from storage account)
+
+on:
+  workflow_dispatch:
+    inputs:
+      container:
+        description: 'Blob container name'
+        required: false
+        default: 'tfstate'
+      storage_account:
+        description: 'Storage account name for backend'
+        required: false
+        default: 'sttfstateshs'
+      workdir:
+        description: 'Terraform working directory (relative to repo root)'
+        required: false
+        default: 'module9/buildOnce-deployMany/environments'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-dev:
+    name: Terraform dev (download tfvars from storage)
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.x
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify storage account exists
+        run: |
+          set -euo pipefail
+          STORAGE_ACCOUNT=${{ github.event.inputs.storage_account }}
+          echo "Checking storage account: $STORAGE_ACCOUNT"
+          az storage account show -n "$STORAGE_ACCOUNT" --query "{name:name,resourceGroup:resourceGroup}" -o table
+
+      - name: Download terraform files from storage account
+        env:
+          STORAGE_ACCOUNT: ${{ github.event.inputs.storage_account }}
+          CONTAINER: ${{ github.event.inputs.container }}
+          WORKDIR: ${{ github.event.inputs.workdir }}
+        run: |
+          set -euo pipefail
+          echo "Downloading terraform files from container: $CONTAINER in storage account: $STORAGE_ACCOUNT to $WORKDIR"
+          mkdir -p "$WORKDIR"
+          # download .tf files
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --pattern "*.tf" --auth-mode login || true
+          # download .tfvars files
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --pattern "*.tfvars" --auth-mode login || true
+          # download .tfstate files (if you want to inspect state)
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --pattern "*.tfstate" --auth-mode login || true
+          echo "Downloaded files:"
+          ls -la "$WORKDIR" || true
+
+      - name: Fail if no terraform files found
+        env:
+          WORKDIR: ${{ github.event.inputs.workdir }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob || true
+          files=("${WORKDIR}"/*.tf "${WORKDIR}"/*.tfvars)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .tf or .tfvars files were downloaded to $WORKDIR. Aborting."
+            exit 1
+          fi
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        env:
+          WORKDIR: ${{ github.event.inputs.workdir }}
+        run: |
+          echo "Running tflint in $WORKDIR"
+          tflint --init
+          tflint --chdir "$WORKDIR"
+
+      - name: Install Checkov
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install checkov
+
+      - name: Run Checkov
+        env:
+          WORKDIR: ${{ github.event.inputs.workdir }}
+        run: |
+          echo "Running Checkov against $WORKDIR"
+          checkov -d "$WORKDIR" --framework terraform

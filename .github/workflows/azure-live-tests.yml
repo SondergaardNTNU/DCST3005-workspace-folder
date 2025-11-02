@@ -46,17 +46,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Azure login (OIDC)
+      - name: Azure login (service principal)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           enable-AzPSSession: false
           environment: azurecloud
           allow-no-subscriptions: false
-          audience: api://AzureADTokenExchange
-          auth-type: SERVICE_PRINCIPAL
+          auth-type: service_principal
         env:
           RESOURCE_GROUP: rg-tfstate-shs
           STORAGE_ACCOUNT: sttfstateshs
@@ -72,6 +72,14 @@ jobs:
         run: |
           echo "Checking container: $CONTAINER in storage account: $STORAGE_ACCOUNT"
           az storage container show --account-name "$STORAGE_ACCOUNT" --name "$CONTAINER" --auth-mode login || (echo "Container $CONTAINER not found in $STORAGE_ACCOUNT" && exit 1)
+
+      - name: Download tfvars from storage account
+        run: |
+          echo "Downloading blobs from container: $CONTAINER in storage account: $STORAGE_ACCOUNT to $WORKDIR"
+          mkdir -p "$WORKDIR"
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --auth-mode login
+          echo "Downloaded files:"
+          ls -la "$WORKDIR" || true
 
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
