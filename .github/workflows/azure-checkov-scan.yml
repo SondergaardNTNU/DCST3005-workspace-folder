@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   terraform-dev:
-    name: Terraform dev (download tfvars from storage)
+    name: Terraform (download tfvars from storage)
     runs-on: ubuntu-latest
     environment: dev
     steps:
