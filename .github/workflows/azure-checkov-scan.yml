@@ -48,35 +48,39 @@ jobs:
           echo "Checking storage account: $STORAGE_ACCOUNT"
           az storage account show -n "$STORAGE_ACCOUNT" --query "{name:name,resourceGroup:resourceGroup}" -o table
 
-      - name: Download terraform files from storage account
+      - name: Download terraform files from storage account (to temp folder)
         env:
           STORAGE_ACCOUNT: ${{ github.event.inputs.storage_account }}
           CONTAINER: ${{ github.event.inputs.container }}
-          WORKDIR: ${{ github.event.inputs.workdir }}
         run: |
           set -euo pipefail
-          echo "Downloading terraform files from container: $CONTAINER in storage account: $STORAGE_ACCOUNT to $WORKDIR"
-          mkdir -p "$WORKDIR"
+          # use a temporary download folder to avoid writing into the repo tree
+          DOWNLOAD_DIR="${RUNNER_TEMP:-/tmp}/tf-download"
+          rm -rf "$DOWNLOAD_DIR" || true
+          mkdir -p "$DOWNLOAD_DIR"
+          echo "Downloading terraform files from container: $CONTAINER in storage account: $STORAGE_ACCOUNT to $DOWNLOAD_DIR"
           # download .tf files
-          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --pattern "*.tf" --auth-mode login || true
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$DOWNLOAD_DIR" --pattern "*.tf" --auth-mode login || true
           # download .tfvars files
-          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --pattern "*.tfvars" --auth-mode login || true
-          # download .tfstate files (if you want to inspect state)
-          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$WORKDIR" --pattern "*.tfstate" --auth-mode login || true
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$DOWNLOAD_DIR" --pattern "*.tfvars" --auth-mode login || true
+          # download .tfstate files
+          az storage blob download-batch --account-name "$STORAGE_ACCOUNT" --source "$CONTAINER" --destination "$DOWNLOAD_DIR" --pattern "*.tfstate" --auth-mode login || true
           echo "Downloaded files:"
-          ls -la "$WORKDIR" || true
+          ls -la "$DOWNLOAD_DIR" || true
+          echo "DOWNLOAD_DIR=$DOWNLOAD_DIR" >> $GITHUB_ENV
 
       - name: Detect and scan Terraform files and state
         env:
-          WORKDIR: ${{ github.event.inputs.workdir }}
+          DOWNLOAD_DIR: ${{ env.DOWNLOAD_DIR }}
         run: |
           set -euo pipefail
-          echo "Searching for Terraform files under $WORKDIR"
+          DOWNLOAD_DIR=${DOWNLOAD_DIR:-"${RUNNER_TEMP:-/tmp}/tf-download"}
+          echo "Searching for Terraform files under $DOWNLOAD_DIR"
 
           # find directories containing .tf files
-          mapfile -t tf_dirs < <(find "$WORKDIR" -type f -name '*.tf' -printf '%h\n' | sort -u)
-          mapfile -t tfvars_files < <(find "$WORKDIR" -type f -name '*.tfvars')
-          mapfile -t tfstate_files < <(find "$WORKDIR" -type f -name '*.tfstate')
+          mapfile -t tf_dirs < <(find "$DOWNLOAD_DIR" -type f -name '*.tf' -printf '%h\n' | sort -u)
+          mapfile -t tfvars_files < <(find "$DOWNLOAD_DIR" -type f -name '*.tfvars')
+          mapfile -t tfstate_files < <(find "$DOWNLOAD_DIR" -type f -name '*.tfstate')
 
           echo "Found tf dirs: ${tf_dirs[*]:-none}"
           echo "Found tfvars files: ${tfvars_files[*]:-none}"
