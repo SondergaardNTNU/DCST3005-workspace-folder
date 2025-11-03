@@ -1,4 +1,4 @@
-name: Oblig2 Terraform CD
+name: Module9 - Terraform CD
 
 on:
   push:
