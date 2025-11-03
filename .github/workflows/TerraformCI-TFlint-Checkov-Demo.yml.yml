@@ -77,11 +77,11 @@ jobs:
         tflint_version: latest
 
     - name: Initialize TFLint
-      working-directory: ${{ env.WORKIDIR }}
+      working-directory: ${{ env.WORKDIR }}
       run: tflint --init
 
     - name: Run TFLint
-      working-directory: ${{ env.WORKIDIR }}
+      working-directory: ${{ env.WORKDIR }}
       id: tflint
       run: tflint -f compact
 
