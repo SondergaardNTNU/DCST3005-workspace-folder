@@ -6,7 +6,7 @@ README-shs.md
 #ignore environment variables file
 env
 
-backend.hcl
+
 
 # tfplan files
 test-tfplan
